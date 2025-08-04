@@ -861,5 +861,5 @@ export default function Geral() {
         )}
       </div>
     </section>
-  );
+  )
 }
