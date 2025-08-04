@@ -26,7 +26,7 @@ const getGeralData = async (instance: PublicClientApplication) => {
     const graphClient = Client.initWithMiddleware({ authProvider });
 
     // Tenta obter os dados do usuário
-    const user = await graphClient.api('/me').get();
+    const user = await graphClient.api("/drives/b!MZPyUvPC3UmkSdLBc-yeun-_NF82IWBHuBty45ivSS2eiihS0RDLS4itf2BP_2Id/items/014KROMCH7DLLFOM2QZVDZZSGZZIMKEQXJ/workbook/worksheets('Dashboard')/range(address='A1:AD1167')?$select=text,values").get();
     
     if (!user) {
       throw new Error('Dados do usuário não retornados');

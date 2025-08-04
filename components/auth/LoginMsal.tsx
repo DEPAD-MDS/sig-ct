@@ -11,7 +11,7 @@ export default function LoginMsal() {
   const { instance } = useMsal();
   return (
     <button
-      className="bg-blue-700 text-white flex gap-2 items-center justify-center font-semibold m-4 px-8 py-4 rounded-lg"
+      className="bg-blue-900 text-white flex gap-2 items-center justify-center font-semibold m-4 px-8 py-4 rounded-lg"
       onClick={() => handleLogin(instance)}
     >
       <img src="/icons/mslogo.png" width={20}/>

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/dashboard.geral";
-import DashboardGeral from "~/dashboard/Geral";
+import Geral from "~/dashboard/Geral";
 import ProtectedRoute from "components/auth/ProtectedRoute";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,10 +12,10 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export default function Dashboard() {
+export default function DashboardGeral() {
   return (
     <ProtectedRoute>
-      <DashboardGeral />;
+      <Geral />;
     </ProtectedRoute>
   );
 }

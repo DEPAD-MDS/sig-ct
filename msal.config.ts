@@ -11,7 +11,7 @@ export const msalConfig = {
   };
   
 export const loginRequest = {
-    scopes: ["User.Read"],
+    scopes: ["User.Read", "mail.read"],
   };
   
 export const apiTokenRequest = {
