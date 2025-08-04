@@ -210,5 +210,5 @@ export default function DesktopNavigation() {
         <Outlet />
       </div>
     </main>
-  );
+  )
 }
