@@ -9,6 +9,9 @@ import {
 
 import type { Route } from "./+types/root";
 import stylesheet from "./app.css?url";
+import { MsalProvider } from "@azure/msal-react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { msalConfig } from "msal.config";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -24,6 +27,9 @@ export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
+const msalInstance = new PublicClientApplication(msalConfig)
+msalInstance.initialize()
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -34,9 +40,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <MsalProvider instance={msalInstance}>
         {children}
         <ScrollRestoration />
         <Scripts />
+        </MsalProvider>
       </body>
     </html>
   );
