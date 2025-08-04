@@ -661,7 +661,7 @@ export default function Geral() {
                           )}
                         >
                           <option value="">Todos</option>
-                          <option value="convenio">Convênio</option>
+                          <option value="Convênio">Convênio</option>
                           <option value="termo de fomento">Termo de Fomento</option>
                         </select>
                       </div>
