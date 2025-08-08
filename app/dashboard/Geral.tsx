@@ -42,6 +42,9 @@ type FilterConfig = {
   gnd3?: NumberRangeFilter;
   gnd4?: NumberRangeFilter;
   valorTotal?: NumberRangeFilter;
+  
+  // Setor ativo nos filtros
+  activeFilterSector?: 'geral' | 'cebas' | 'repasses';
 };
 
 export default function Geral() {
@@ -50,7 +53,7 @@ export default function Geral() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'geral' | 'cebas' | 'repasses'>('geral');
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterConfig>({});
+  const [filters, setFilters] = useState<FilterConfig>({ activeFilterSector: 'geral' });
   const { instance } = useMsal();
 
   // Otimização: Memoize os índices das colunas
@@ -114,16 +117,22 @@ export default function Geral() {
     };
   }, [tableData.rows, columnIndices]);
 
-  // Filtra os dados baseado no termo de busca (CNPJ)
+  // Filtra os dados baseado no termo de busca (CNPJ ou Nome da Comunidade)
   const filteredData = useMemo(() => {
     if (!searchTerm) return tableData.rows;
     
     const cnpjIndex = columnIndices['CNPJ'];
-    if (cnpjIndex === undefined) return tableData.rows;
+    const comunidadeIndex = columnIndices['RAZÃO SOCIAL'];
     
-    return tableData.rows.filter(row => 
-      row[cnpjIndex]?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return tableData.rows.filter(row => {
+      const cnpjMatch = cnpjIndex !== undefined && 
+                       row[cnpjIndex]?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const comunidadeMatch = comunidadeIndex !== undefined && 
+                            row[comunidadeIndex]?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return cnpjMatch || comunidadeMatch;
+    });
   }, [searchTerm, tableData.rows, columnIndices]);
 
   // Função para parsear números com vírgula decimal
@@ -236,21 +245,30 @@ export default function Geral() {
     };
   }, [finalData, columnIndices, parseNumber]);
 
-  // Sugestões de CNPJ para a busca (limitado a 5)
-  const cnpjSuggestions = useMemo(() => {
+  // Sugestões de CNPJ e Nomes de Comunidade para a busca (limitado a 4)
+  const searchSuggestions = useMemo(() => {
     const cnpjIndex = columnIndices['CNPJ'];
-    if (cnpjIndex === undefined) return [];
+    const comunidadeIndex = columnIndices['RAZÃO SOCIAL'];
     
-    const uniqueCnps = new Set<string>();
+    if (cnpjIndex === undefined && comunidadeIndex === undefined) return [];
+    
+    const suggestions = new Set<string>();
     
     for (const row of tableData.rows) {
-      if (row[cnpjIndex] && row[cnpjIndex].length > 0) {
-        uniqueCnps.add(row[cnpjIndex]);
-        if (uniqueCnps.size >= 5) break;
+      // Adiciona CNPJ se existir
+      if (cnpjIndex !== undefined && row[cnpjIndex] && row[cnpjIndex].length > 0) {
+        suggestions.add(row[cnpjIndex]);
+        if (suggestions.size >= 4) break;
+      }
+      
+      // Adiciona Nome da Comunidade se existir
+      if (comunidadeIndex !== undefined && row[comunidadeIndex] && row[comunidadeIndex].length > 0) {
+        suggestions.add(row[comunidadeIndex]);
+        if (suggestions.size >= 4) break;
       }
     }
     
-    return Array.from(uniqueCnps);
+    return Array.from(suggestions);
   }, [tableData.rows, columnIndices]);
 
   // Atualiza um filtro específico com tipagem segura
@@ -258,6 +276,14 @@ export default function Geral() {
     setFilters(prev => ({
       ...prev,
       [key]: value === '' || (value === null && key !== 'tipoProcesso') ? undefined : value
+    }));
+  }, []);
+
+  // Muda o setor ativo nos filtros
+  const setActiveFilterSector = useCallback((sector: 'geral' | 'cebas' | 'repasses') => {
+    setFilters(prev => ({
+      ...prev,
+      activeFilterSector: sector
     }));
   }, []);
 
@@ -328,28 +354,6 @@ export default function Geral() {
         <LogoutMsal />
       </div>
 
-      {/* Tabs */}
-      <div className="flex mb-4 border-b border-gray-200">
-        <button
-          className={`py-2 px-4 font-medium ${activeTab === 'geral' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('geral')}
-        >
-          Geral
-        </button>
-        <button
-          className={`py-2 px-4 font-medium ${activeTab === 'cebas' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('cebas')}
-        >
-          CEBAS
-        </button>
-        <button
-          className={`py-2 px-4 font-medium ${activeTab === 'repasses' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('repasses')}
-        >
-          Repasses
-        </button>
-      </div>
-
       {/* Barra de pesquisa */}
       <div className="relative mb-4">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -358,7 +362,7 @@ export default function Geral() {
         <input
           type="text"
           className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Buscar por CNPJ..."
+          placeholder="Buscar por CNPJ ou Nome da Comunidade..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -372,20 +376,20 @@ export default function Geral() {
         )}
       </div>
 
-      {/* Sugestões de CNPJ */}
-      {searchTerm && cnpjSuggestions.length > 0 && (
+      {/* Sugestões de busca */}
+      {searchTerm && searchSuggestions.length > 0 && (
         <div className="mb-4 bg-white shadow rounded-md p-2">
           <p className="text-sm text-gray-500 mb-1">Sugestões:</p>
           <div className="flex flex-wrap gap-2">
-            {cnpjSuggestions.map((cnpj, index) => (
+            {searchSuggestions.map((suggestion, index) => (
               <motion.button
                 key={index}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200"
-                onClick={() => setSearchTerm(cnpj)}
+                onClick={() => setSearchTerm(suggestion)}
               >
-                {cnpj}
+                {suggestion}
               </motion.button>
             ))}
           </div>
@@ -424,7 +428,7 @@ export default function Geral() {
               >
                 <div className="sticky top-0 bg-white z-10 p-6 pb-0">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Filtros - {activeTab.toUpperCase()}</h3>
+                    <h3 className="text-lg font-semibold">Filtros</h3>
                     <button 
                       onClick={() => setShowFilters(false)}
                       className="text-gray-500 hover:text-gray-700"
@@ -432,11 +436,33 @@ export default function Geral() {
                       <FiX size={20} />
                     </button>
                   </div>
+                  
+                  {/* Menu de setores dentro do filtro */}
+                  <div className="flex border-b border-gray-200 mb-4">
+                    <button
+                      className={`py-2 px-4 font-medium ${filters.activeFilterSector === 'geral' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                      onClick={() => setActiveFilterSector('geral')}
+                    >
+                      Geral
+                    </button>
+                    <button
+                      className={`py-2 px-4 font-medium ${filters.activeFilterSector === 'cebas' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                      onClick={() => setActiveFilterSector('cebas')}
+                    >
+                      CEBAS
+                    </button>
+                    <button
+                      className={`py-2 px-4 font-medium ${filters.activeFilterSector === 'repasses' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                      onClick={() => setActiveFilterSector('repasses')}
+                    >
+                      Repasses
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="p-6 pt-0 space-y-6">
                   {/* Filtros para Geral */}
-                  {activeTab === 'geral' && (
+                  {filters.activeFilterSector === 'geral' && (
                     <>
                       <div className="space-y-4">
                         <h4 className="font-medium">Vagas:</h4>
@@ -626,7 +652,7 @@ export default function Geral() {
                   )}
 
                   {/* Filtros para CEBAS */}
-                  {activeTab === 'cebas' && (
+                  {filters.activeFilterSector === 'cebas' && (
                     <>
                       <div>
                         <label className="block text-sm text-gray-700 mb-1">Data Cronológica</label>
@@ -661,7 +687,7 @@ export default function Geral() {
                           )}
                         >
                           <option value="">Todos</option>
-                          <option value="Convênio">Convênio</option>
+                          <option value="convenio">Convênio</option>
                           <option value="termo de fomento">Termo de Fomento</option>
                         </select>
                       </div>
@@ -669,7 +695,7 @@ export default function Geral() {
                   )}
 
                   {/* Filtros para Repasses */}
-                  {activeTab === 'repasses' && (
+                  {filters.activeFilterSector === 'repasses' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm text-gray-700 mb-1">Contrapartida</label>
@@ -777,7 +803,7 @@ export default function Geral() {
                   <div className="flex justify-end pt-4 sticky bottom-0 bg-white pb-4">
                     <button
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 mr-2"
-                      onClick={() => setFilters({})}
+                      onClick={() => setFilters({ activeFilterSector: filters.activeFilterSector })}
                     >
                       Limpar Filtros
                     </button>
@@ -795,70 +821,52 @@ export default function Geral() {
         </AnimatePresence>
       </div>
 
-      {/* Conteúdo das tabs */}
+      {/* Cards de Repasses */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <motion.div 
+          whileHover={{ y: -5 }}
+          className="bg-blue-50 p-4 rounded-lg shadow"
+        >
+          <h3 className="text-sm font-medium text-blue-800">Contrapartida</h3>
+          <p className="text-2xl font-bold text-blue-600">{repassesTotals.contrapartida}</p>
+        </motion.div>
+        <motion.div 
+          whileHover={{ y: -5 }}
+          className="bg-green-50 p-4 rounded-lg shadow"
+        >
+          <h3 className="text-sm font-medium text-green-800">Valor GND 3</h3>
+          <p className="text-2xl font-bold text-green-600">{repassesTotals.gnd3}</p>
+        </motion.div>
+        <motion.div 
+          whileHover={{ y: -5 }}
+          className="bg-purple-50 p-4 rounded-lg shadow"
+        >
+          <h3 className="text-sm font-medium text-purple-800">Valor GND 4</h3>
+          <p className="text-2xl font-bold text-purple-600">{repassesTotals.gnd4}</p>
+        </motion.div>
+        <motion.div 
+          whileHover={{ y: -5 }}
+          className="bg-orange-50 p-4 rounded-lg shadow"
+        >
+          <h3 className="text-sm font-medium text-orange-800">Total Global</h3>
+          <p className="text-2xl font-bold text-orange-600">{repassesTotals.totalGlobal}</p>
+        </motion.div>
+      </div>
+
+      {/* Tabela principal */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {activeTab === 'geral' && (
-          <div className="p-4">
-            <h2 className="text-xl font-semibold mb-4">Dados Gerais</h2>
-            <div className="max-h-[600px] overflow-y-auto">
-              {renderTable(finalData)}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'cebas' && (
-          <div className="p-4">
-            <h2 className="text-xl font-semibold mb-4">CEBAS</h2>
-            <div className="max-h-[600px] overflow-y-auto">
-              {renderTable(finalData)}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'repasses' && (
-          <div className="p-4">
-            <h2 className="text-xl font-semibold mb-4">Repasses</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <motion.div 
-                whileHover={{ y: -5 }}
-                className="bg-blue-50 p-4 rounded-lg shadow"
-              >
-                <h3 className="text-sm font-medium text-blue-800">Contrapartida</h3>
-                <p className="text-2xl font-bold text-blue-600">{repassesTotals.contrapartida}</p>
-              </motion.div>
-              <motion.div 
-                whileHover={{ y: -5 }}
-                className="bg-green-50 p-4 rounded-lg shadow"
-              >
-                <h3 className="text-sm font-medium text-green-800">Valor GND 3</h3>
-                <p className="text-2xl font-bold text-green-600">{repassesTotals.gnd3}</p>
-              </motion.div>
-              <motion.div 
-                whileHover={{ y: -5 }}
-                className="bg-purple-50 p-4 rounded-lg shadow"
-              >
-                <h3 className="text-sm font-medium text-purple-800">Valor GND 4</h3>
-                <p className="text-2xl font-bold text-purple-600">{repassesTotals.gnd4}</p>
-              </motion.div>
-              <motion.div 
-                whileHover={{ y: -5 }}
-                className="bg-orange-50 p-4 rounded-lg shadow"
-              >
-                <h3 className="text-sm font-medium text-orange-800">Total Global</h3>
-                <p className="text-2xl font-bold text-orange-600">{repassesTotals.totalGlobal}</p>
-              </motion.div>
-            </div>
+        <div className="p-4">
+          <h2 className="text-xl font-semibold mb-4">Dados Gerais</h2>
+          <div className="max-h-[600px] overflow-y-auto">
             {finalData.length > 0 ? (
-              <div className="max-h-[600px] overflow-y-auto">
-                {renderTable(finalData)}
-              </div>
+              renderTable(finalData)
             ) : (
               <div className="text-center py-8 text-gray-500">
                 Nenhum dado encontrado
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </section>
   )
