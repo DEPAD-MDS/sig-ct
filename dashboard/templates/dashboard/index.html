@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <!-- Inclua aqui o CSS do seu framework preferido (Bootstrap, etc.) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Exemplo com Chart.js -->
+</head>
+<body>
+    <h1>Meu Dashboard</h1>
+
+    {% if error %}
+        <div style="color: red;">
+            <h2>Ocorreu um erro:</h2>
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <div style="width: 80%; margin: auto;">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <script>
+            const ctx = document.getElementById("myChart");
+            const rawData = {{ data|safe }};
+
+            // Exemplo de como processar os dados para o gráfico
+            // Adapte 'NOME_DA_COLUNA_X' e 'NOME_DA_COLUNA_Y' para as colunas reais do seu Excel
+            const labels = rawData.map(item => item.NOME_DA_COLUNA_X);
+            const chartData = rawData.map(item => item.NOME_DA_COLUNA_Y);
+
+            new Chart(ctx, {
+                type: "bar", // ou "line", "pie", etc.
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Dados da Planilha",
+                        data: chartData,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        </script>
+    {% endif %}
+</body>
+</html>
+
+
