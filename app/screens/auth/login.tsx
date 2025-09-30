@@ -16,11 +16,11 @@ export default function Login() {
       {/* Background com fade in */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.2 }}
-        transition={{ duration: 1, ease: "easeOut" }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, ease: "easeInOut" }}
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: 'url("/sigct-full-logo.png")'
+          backgroundImage: 'url("/background.jpg")'
         }}
       />
 
@@ -28,8 +28,8 @@ export default function Login() {
       <motion.section
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md border border-neutral-300"
+        transition={{ duration: 0.7, ease: "easeInOut" }}
+        className="relative bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 w-full max-w-md border border-neutral-300"
       >
         <div className="text-center space-y-6">
           {/* Logo */}

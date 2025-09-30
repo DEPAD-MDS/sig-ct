@@ -4,7 +4,8 @@ export default [
     index("routes/auth.login.tsx"),
     layout("components/DashboardLayout.tsx", [
        ...prefix("dashboard", [
-         route("/", "routes/dashboard.tsx")
+         route("/", "routes/dashboard.tsx"),
+         route("/repasses", "routes/dashboard.repasses.tsx")
        ])
     ])
 ] satisfies RouteConfig;

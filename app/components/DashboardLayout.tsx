@@ -67,12 +67,7 @@ function Logo({ isCollapsed }: LogoProps) {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="flex items-center gap-3 overflow-hidden"
                 >
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-lg font-bold">S</span>
-                    </div>
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                        SIGCT
-                    </h1>
+                    <img src="/sigct-minimal-logo-white.svg"/>
                 </motion.div>
             )}
         </AnimatePresence>
@@ -86,7 +81,7 @@ function ToggleButton({ isCollapsed, onClick }: ToggleButtonProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClick}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 ml-auto"
+            className="p-2  rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 "
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
         >
             {isCollapsed ? (
@@ -105,7 +100,7 @@ function MenuItem({ item, isCollapsed } : any) {
     return (
         <motion.button
             whileHover={{ x: isCollapsed ? 0 : 2 }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors relative group"
+            className="w-full cursor-pointer flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors relative group"
         >
             <Icon className="w-5 h-5 flex-shrink-0" />
             
@@ -136,7 +131,7 @@ function MenuItem({ item, isCollapsed } : any) {
 // Componente de User Profile
 function UserProfile({ userName, userEmail, userInitial, isCollapsed } : any) {
     return (
-        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer relative group">
+        <div className="flex gap-3 p-5  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center  relative group">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm font-bold">{userInitial}</span>
             </div>
@@ -144,7 +139,7 @@ function UserProfile({ userName, userEmail, userInitial, isCollapsed } : any) {
             <AnimatePresence mode="wait">
                 {!isCollapsed && (
                     <motion.div
-                        initial={{ opacity: 0, x: -10 }}
+                        initial={{ opacity: 0, x: -10}}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
@@ -194,17 +189,17 @@ export default function DashboardLayout() {
     const theme = usePreferredTheme();
 
     const menuItems = [
-        { name: 'Home', icon: Home },
-        { name: 'Notifications', icon: Bell },
-        { name: 'Tasks', icon: CheckSquare },
-        { name: 'Settings', icon: Settings }
+        { name: 'Geral', icon: Home },
+        { name: 'Repasses', icon: Bell },
+        { name: 'CEBAS', icon: CheckSquare },
+        { name: 'Monitoramento', icon: Settings }
     ];
 
     const otherItems = [
-        { name: 'Documentation', icon: BookOpen },
-        { name: 'Refer a Friend', icon: UserPlus },
+        { name: 'Configurações', icon: Settings },
+        { name: 'Documentação', icon: BookOpen },
         { name: 'Index', icon: List },
-        { name: 'Support', icon: HelpCircle }
+        { name: 'Suporte', icon: HelpCircle }
     ];
 
     useEffect(() => {
@@ -258,7 +253,7 @@ export default function DashboardLayout() {
                 className="fixed lg:relative h-full bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 z-50 flex flex-col"
             >
                 {/* Header */}
-                <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className="h-fit py-4 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <Logo isCollapsed={isCollapsed} />
                     <ToggleButton isCollapsed={isCollapsed} onClick={handleToggle} />
                 </div>
@@ -283,7 +278,7 @@ export default function DashboardLayout() {
                 </div>
 
                 {/* User Profile */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className=" border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <UserProfile 
                         userName={userName}
                         userEmail={userEmail}
@@ -292,7 +287,6 @@ export default function DashboardLayout() {
                     />
                 </div>
             </motion.aside>
-
             {/* Conteúdo principal */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 <MobileHeader onMenuClick={() => setIsMobileOpen(true)} />
