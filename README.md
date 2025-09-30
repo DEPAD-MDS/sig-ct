@@ -1,106 +1,87 @@
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fexamples%2Ftree%2Fmain%2Fpython%2Fdjango&demo-title=Django%20%2B%20Vercel&demo-description=Use%20Django%204%20on%20Vercel%20with%20Serverless%20Functions%20using%20the%20Python%20Runtime.&demo-url=https%3A%2F%2Fdjango-template.vercel.app%2F&demo-image=https://assets.vercel.com/image/upload/v1669994241/random/django.png)
+# Welcome to React Router!
 
-# Django + Vercel
+A modern, production-ready template for building full-stack React applications using React Router.
 
-This example shows how to use Django 4 on Vercel with Serverless Functions using the [Python Runtime](https://vercel.com/docs/concepts/functions/serverless-functions/runtimes/python).
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
 
-## Demo
+## Features
 
-https://django-template.vercel.app/
+- 🚀 Server-side rendering
+- ⚡️ Hot Module Replacement (HMR)
+- 📦 Asset bundling and optimization
+- 🔄 Data loading and mutations
+- 🔒 TypeScript by default
+- 🎉 TailwindCSS for styling
+- 📖 [React Router docs](https://reactrouter.com/)
 
-## How it Works
+## Getting Started
 
-Our Django application, `example` is configured as an installed application in `api/settings.py`:
+### Installation
 
-```python
-# api/settings.py
-INSTALLED_APPS = [
-    # ...
-    'example',
-]
-```
-
-We allow "\*.vercel.app" subdomains in `ALLOWED_HOSTS`, in addition to 127.0.0.1:
-
-```python
-# api/settings.py
-ALLOWED_HOSTS = ['127.0.0.1', '.vercel.app']
-```
-
-The `wsgi` module must use a public variable named `app` to expose the WSGI application:
-
-```python
-# api/wsgi.py
-app = get_wsgi_application()
-```
-
-The corresponding `WSGI_APPLICATION` setting is configured to use the `app` variable from the `api.wsgi` module:
-
-```python
-# api/settings.py
-WSGI_APPLICATION = 'api.wsgi.app'
-```
-
-There is a single view which renders the current time in `example/views.py`:
-
-```python
-# example/views.py
-from datetime import datetime
-
-from django.http import HttpResponse
-
-
-def index(request):
-    now = datetime.now()
-    html = f'''
-    <html>
-        <body>
-            <h1>Hello from Vercel!</h1>
-            <p>The current time is { now }.</p>
-        </body>
-    </html>
-    '''
-    return HttpResponse(html)
-```
-
-This view is exposed a URL through `example/urls.py`:
-
-```python
-# example/urls.py
-from django.urls import path
-
-from example.views import index
-
-
-urlpatterns = [
-    path('', index),
-]
-```
-
-Finally, it's made accessible to the Django server inside `api/urls.py`:
-
-```python
-# api/urls.py
-from django.urls import path, include
-
-urlpatterns = [
-    ...
-    path('', include('example.urls')),
-]
-```
-
-This example uses the Web Server Gateway Interface (WSGI) with Django to enable handling requests on Vercel with Serverless Functions.
-
-## Running Locally
+Install the dependencies:
 
 ```bash
-python manage.py runserver
+npm install
 ```
 
-Your Django application is now available at `http://localhost:8000`.
+### Development
 
-## One-Click Deploy
+Start the development server with HMR:
 
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=vercel-examples):
+```bash
+npm run dev
+```
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fexamples%2Ftree%2Fmain%2Fpython%2Fdjango&demo-title=Django%20%2B%20Vercel&demo-description=Use%20Django%204%20on%20Vercel%20with%20Serverless%20Functions%20using%20the%20Python%20Runtime.&demo-url=https%3A%2F%2Fdjango-template.vercel.app%2F&demo-image=https://assets.vercel.com/image/upload/v1669994241/random/django.png)
+Your application will be available at `http://localhost:5173`.
+
+## Building for Production
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+## Deployment
+
+### Docker Deployment
+
+To build and run using Docker:
+
+```bash
+docker build -t my-app .
+
+# Run the container
+docker run -p 3000:3000 my-app
+```
+
+The containerized application can be deployed to any platform that supports Docker, including:
+
+- AWS ECS
+- Google Cloud Run
+- Azure Container Apps
+- Digital Ocean App Platform
+- Fly.io
+- Railway
+
+### DIY Deployment
+
+If you're familiar with deploying Node applications, the built-in app server is production-ready.
+
+Make sure to deploy the output of `npm run build`
+
+```
+├── package.json
+├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
+├── build/
+│   ├── client/    # Static assets
+│   └── server/    # Server-side code
+```
+
+## Styling
+
+This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+
+---
+
+Built with ❤️ using React Router.

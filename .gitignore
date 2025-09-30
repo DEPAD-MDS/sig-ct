@@ -1,15 +1,7 @@
-.vercel
-*.log
-*.pyc
-__pycache__
-db.sqlite3
-media
+.DS_Store
+.env
+/node_modules/
 
-# Environments 
-.env 
-.venv 
-env/ 
-venv/ 
-ENV/ 
-env.bak/ 
-venv.bak/ 
+# React Router
+/.react-router/
+/build/
