@@ -1,5 +1,5 @@
-import type { Route } from "./+types/dashboard";
-import Geral from "../screens/dashboard/Geral";
+import type { Route } from "./+types/dashboard.cebas";
+import Cebas from "../screens/dashboard/Cebas";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -8,6 +8,6 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-export default function DashboardGeral() {
-    return <Geral/>;
+export default function DashboardCebas() {
+    return <Cebas/>;
 }

@@ -1,420 +1,408 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { Filter, X } from 'lucide-react';
 
-const Repasses = () => {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedAnalyst, setSelectedAnalyst] = useState('TODOS');
-  const lineChartRef = useRef(null);
-  const barChartRef = useRef(null);
-  const statusChartRef = useRef(null);
-  const situationChartRef = useRef(null);
+interface TecnicoData {
+  responsavel: string;
+  gnd3: string;
+  gnd4: string;
+  tmFormalizacao: string;
+  tmParecer: string;
+}
 
-  const analysts = ['TODOS', 'ALESSANDRA', 'IVONE', 'PATRÍCIA', 'ATILA', 'LUÍSA', 'RAYLAN', 'BRUNO', 'MARCELA', 'CLAUDIA', 'MARCELO', 'DEPAD', 'MÁRCIO', 'FRANCISCO', 'MARUCIA'];
+interface StatusData {
+  responsavel: string;
+  finalizado: string;
+  total: string;
+}
 
-  const lineData = [
-    { month: 'maio', entrada: 27, formalizado: 5 },
-    { month: 'junho', entrada: 15, formalizado: 14 },
-    { month: 'julho', entrada: 19, formalizado: 13 },
-    { month: 'agosto', entrada: 7, formalizado: 19 },
-    { month: 'setembro', entrada: 27, formalizado: 22 },
-    { month: 'outubro', entrada: 27, formalizado: 22 },
-    { month: 'novembro', entrada: 26, formalizado: 29 },
-    { month: 'dezembro', entrada: 15, formalizado: 30 }
+interface ConcluidoData {
+  responsavel: string;
+  finalizado: string;
+  total: string;
+}
+
+export default function Repasses() {
+  const statusChartRef = useRef<SVGSVGElement>(null);
+  const situacaoChartRef = useRef<SVGSVGElement>(null);
+
+  // Mock data para as tabelas
+  const demandaPorTecnico: TecnicoData[] = [
+    { responsavel: "João Silva", gnd3: "25", gnd4: "18", tmFormalizacao: "12", tmParecer: "8" },
+    { responsavel: "Maria Santos", gnd3: "32", gnd4: "22", tmFormalizacao: "10", tmParecer: "7" },
+    { responsavel: "Pedro Costa", gnd3: "28", gnd4: "15", tmFormalizacao: "14", tmParecer: "9" },
+    { responsavel: "Ana Oliveira", gnd3: "20", gnd4: "12", tmFormalizacao: "11", tmParecer: "6" },
   ];
 
-  const statusData = [
-    { status: 'FINALIZADO', value: 199 },
-    { status: 'IMPEDIMENTO TÉCNICO', value: 17 }
+  const statusPorAnalista: StatusData[] = [
+    { responsavel: "João Silva", finalizado: "35", total: "43" },
+    { responsavel: "Maria Santos", finalizado: "48", total: "54" },
+    { responsavel: "Pedro Costa", finalizado: "38", total: "43" },
+    { responsavel: "Ana Oliveira", finalizado: "28", total: "32" },
   ];
 
-  const situationData = [
-    { status: 'CELEBRADO', value: 182 },
-    { status: 'IMPEDIMENTO TÉCNICO', value: 17 }
+  const concluidosPorAnalista: ConcluidoData[] = [
+    { responsavel: "João Silva", finalizado: "35", total: "35" },
+    { responsavel: "Maria Santos", finalizado: "48", total: "48" },
+    { responsavel: "Pedro Costa", finalizado: "38", total: "38" },
+    { responsavel: "Ana Oliveira", finalizado: "28", total: "28" },
   ];
 
-  // Line Chart
-  useEffect(() => {
-    if (!lineChartRef.current) return;
-
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-    const width = 900 - margin.left - margin.right;
-    const height = 250 - margin.top - margin.bottom;
-
-    d3.select(lineChartRef.current).selectAll("*").remove();
-
-    const svg = d3.select(lineChartRef.current)
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const x = d3.scalePoint()
-      .domain(lineData.map(d => d.month))
-      .range([0, width]);
-
-    const y = d3.scaleLinear()
-      .domain([0, 60])
-      .range([height, 0]);
-
-    svg.append("g")
-      .attr("transform", `translate(0,${height})`)
-      .call(d3.axisBottom(x))
-      .selectAll("text")
-      .style("font-size", "11px");
-
-    svg.append("g")
-      .call(d3.axisLeft(y).ticks(6))
-      .selectAll("text")
-      .style("font-size", "11px");
-
-    const lineEntrada = d3.line()
-      .x(d => x(d.month))
-      .y(d => y(d.entrada));
-
-    const lineFormalizado = d3.line()
-      .x(d => x(d.month))
-      .y(d => y(d.formalizado));
-
-    svg.append("path")
-      .datum(lineData)
-      .attr("fill", "none")
-      .attr("stroke", "#3b82f6")
-      .attr("stroke-width", 2)
-      .attr("d", lineEntrada);
-
-    svg.append("path")
-      .datum(lineData)
-      .attr("fill", "none")
-      .attr("stroke", "#ef4444")
-      .attr("stroke-width", 2)
-      .attr("d", lineFormalizado);
-
-    lineData.forEach(d => {
-      svg.append("circle")
-        .attr("cx", x(d.month))
-        .attr("cy", y(d.entrada))
-        .attr("r", 3)
-        .attr("fill", "#3b82f6");
-
-      svg.append("text")
-        .attr("x", x(d.month))
-        .attr("y", y(d.entrada) - 8)
-        .attr("text-anchor", "middle")
-        .style("font-size", "11px")
-        .text(d.entrada);
-
-      svg.append("circle")
-        .attr("cx", x(d.month))
-        .attr("cy", y(d.formalizado))
-        .attr("r", 3)
-        .attr("fill", "#ef4444");
-
-      svg.append("text")
-        .attr("x", x(d.month))
-        .attr("y", y(d.formalizado) - 8)
-        .attr("text-anchor", "middle")
-        .style("font-size", "11px")
-        .text(d.formalizado);
-    });
-  }, []);
-
-  // Status Bar Chart (Horizontal)
+  // Gráfico de Status dos Processos (Consolidados)
   useEffect(() => {
     if (!statusChartRef.current) return;
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 150 };
-    const width = 700 - margin.left - margin.right;
-    const height = 200 - margin.top - margin.bottom;
+    const svg = d3.select(statusChartRef.current);
+    svg.selectAll('*').remove();
 
-    d3.select(statusChartRef.current).selectAll("*").remove();
+    const width = 400;
+    const height = 300;
+    const margin = { top: 30, right: 30, bottom: 50, left: 60 };
 
-    const svg = d3.select(statusChartRef.current)
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const x = d3.scaleLinear()
-      .domain([0, 200])
-      .range([0, width]);
-
-    const y = d3.scaleBand()
-      .domain(statusData.map(d => d.status))
-      .range([0, height])
-      .padding(0.3);
-
-    svg.append("g")
-      .call(d3.axisLeft(y))
-      .selectAll("text")
-      .style("font-size", "12px");
-
-    svg.selectAll("rect")
-      .data(statusData)
-      .enter()
-      .append("rect")
-      .attr("y", d => y(d.status))
-      .attr("x", 0)
-      .attr("height", y.bandwidth())
-      .attr("width", d => x(d.value))
-      .attr("fill", "#1e40af");
-
-    svg.selectAll("text.value")
-      .data(statusData)
-      .enter()
-      .append("text")
-      .attr("class", "value")
-      .attr("x", d => x(d.value) + 5)
-      .attr("y", d => y(d.status) + y.bandwidth() / 2)
-      .attr("dy", ".35em")
-      .style("font-size", "12px")
-      .style("font-weight", "bold")
-      .text(d => d.value);
-  }, []);
-
-  // Situation Bar Chart (Vertical)
-  useEffect(() => {
-    if (!situationChartRef.current) return;
-
-    const margin = { top: 20, right: 30, bottom: 80, left: 50 };
-    const width = 600 - margin.left - margin.right;
-    const height = 300 - margin.top - margin.bottom;
-
-    d3.select(situationChartRef.current).selectAll("*").remove();
-
-    const svg = d3.select(situationChartRef.current)
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
+    const data = [{ label: 'Finalizado', value: 199 }];
 
     const x = d3.scaleBand()
-      .domain(situationData.map(d => d.status))
-      .range([0, width])
-      .padding(0.3);
+      .domain(data.map(d => d.label))
+      .range([margin.left, width - margin.right])
+      .padding(0.4);
 
     const y = d3.scaleLinear()
-      .domain([0, 200])
-      .range([height, 0]);
+      .domain([0, d3.max(data, (d: { value: any; }) => d.value) as number * 1.1])
+      .range([height - margin.bottom, margin.top]);
 
-    svg.append("g")
-      .attr("transform", `translate(0,${height})`)
+    const g = svg.append('g');
+
+    // Barras
+    g.selectAll('rect')
+      .data(data)
+      .enter()
+      .append('rect')
+      .attr('x', (d: { label: any; }) => x(d.label) as number)
+      .attr('y', (d: { value: any; }) => y(d.value))
+      .attr('width', x.bandwidth())
+      .attr('height', (d: { value: any; }) => height - margin.bottom - y(d.value))
+      .attr('fill', '#3b82f6')
+      .attr('rx', 4);
+
+    // Valores no topo das barras
+    g.selectAll('text.value')
+      .data(data)
+      .enter()
+      .append('text')
+      .attr('class', 'value')
+      .attr('x', (d: { label: any; }) => (x(d.label) as number) + x.bandwidth() / 2)
+      .attr('y', (d: { value: any; }) => y(d.value) - 5)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#f1f5f9')
+      .attr('font-size', '14px')
+      .attr('font-weight', '600')
+      .text((d: { value: any; }) => d.value);
+
+    // Eixo X
+    g.append('g')
+      .attr('transform', `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(x))
-      .selectAll("text")
-      .attr("transform", "rotate(-25)")
-      .style("text-anchor", "end")
-      .style("font-size", "11px");
+      .selectAll('text')
+      .attr('fill', '#94a3b8')
+      .attr('font-size', '12px');
 
-    svg.append("g")
+    g.selectAll('.domain, .tick line')
+      .attr('stroke', '#475569');
+
+    // Eixo Y
+    g.append('g')
+      .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y))
-      .selectAll("text")
-      .style("font-size", "11px");
+      .selectAll('text')
+      .attr('fill', '#94a3b8')
+      .attr('font-size', '12px');
 
-    svg.selectAll("rect")
-      .data(situationData)
-      .enter()
-      .append("rect")
-      .attr("x", d => x(d.status))
-      .attr("y", d => y(d.value))
-      .attr("width", x.bandwidth())
-      .attr("height", d => height - y(d.value))
-      .attr("fill", "#1e40af");
+    g.selectAll('.domain, .tick line')
+      .attr('stroke', '#475569');
 
-    svg.selectAll("text.value")
-      .data(situationData)
+  }, []);
+
+  // Gráfico de Situação
+  useEffect(() => {
+    if (!situacaoChartRef.current) return;
+
+    const svg = d3.select(situacaoChartRef.current);
+    svg.selectAll('*').remove();
+
+    const width = 400;
+    const height = 300;
+    const margin = { top: 30, right: 30, bottom: 50, left: 60 };
+
+    const data = [
+      { label: 'Celebrado', value: 182 },
+      { label: 'Impedimento Técnico', value: 17 }
+    ];
+
+    const x = d3.scaleBand()
+      .domain(data.map(d => d.label))
+      .range([margin.left, width - margin.right])
+      .padding(0.4);
+
+    const y = d3.scaleLinear()
+      .domain([0, d3.max(data, (d: { value: any; }) => d.value) as number * 1.1])
+      .range([height - margin.bottom, margin.top]);
+
+    const colorScale = d3.scaleOrdinal()
+      .domain(data.map(d => d.label))
+      .range(['#10b981', '#ef4444']);
+
+    const g = svg.append('g');
+
+    // Barras
+    g.selectAll('rect')
+      .data(data)
       .enter()
-      .append("text")
-      .attr("class", "value")
-      .attr("x", d => x(d.status) + x.bandwidth() / 2)
-      .attr("y", d => y(d.value) - 5)
-      .attr("text-anchor", "middle")
-      .style("font-size", "13px")
-      .style("font-weight", "bold")
-      .text(d => d.value);
+      .append('rect')
+      .attr('x', (d: { label: any; }) => x(d.label) as number)
+      .attr('y', (d: { value: any; }) => y(d.value))
+      .attr('width', x.bandwidth())
+      .attr('height', (d: { value: any; }) => height - margin.bottom - y(d.value))
+      .attr('fill', (d: { label: any; }) => colorScale(d.label) as string)
+      .attr('rx', 4);
+
+    // Valores no topo das barras
+    g.selectAll('text.value')
+      .data(data)
+      .enter()
+      .append('text')
+      .attr('class', 'value')
+      .attr('x', (d: { label: any; }) => (x(d.label) as number) + x.bandwidth() / 2)
+      .attr('y', (d: { value: any; }) => y(d.value) - 5)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#f1f5f9')
+      .attr('font-size', '14px')
+      .attr('font-weight', '600')
+      .text((d: { value: any; }) => d.value);
+
+    // Eixo X
+    g.append('g')
+      .attr('transform', `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(x))
+      .selectAll('text')
+      .attr('fill', '#94a3b8')
+      .attr('font-size', '11px')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '.15em')
+      .attr('transform', 'rotate(-25)');
+
+    g.selectAll('.domain, .tick line')
+      .attr('stroke', '#475569');
+
+    // Eixo Y
+    g.append('g')
+      .attr('transform', `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y))
+      .selectAll('text')
+      .attr('fill', '#94a3b8')
+      .attr('font-size', '12px');
+
+    g.selectAll('.domain, .tick line')
+      .attr('stroke', '#475569');
+
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-blue-900 text-white p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">CAFT - FORMALIZAÇÃO</h1>
-            <p className="text-sm">PROPOSTAS DEPAD</p>
-          </div>
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded flex items-center gap-2"
-          >
-            <Filter size={20} />
-            FILTROS
-          </button>
+    <section className="flex gap-6 flex-col p-6 bg-slate-900 min-h-screen">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-semibold text-slate-100">Repasses</h1>
+      </div>
+
+      {/* Cards de Indicadores */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Indicação (TOTAL)</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">245</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Processos SEI</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">189</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Representação</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">156</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Média - Elaboração Parecer</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">7.5 dias</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Média - Formalização</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">11.8 dias</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Contrapartida</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">R$ 2.4M</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Valor GND3</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">R$ 5.8M</div>
+        </div>
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+          <div className="text-sm font-medium text-slate-400">Valor GND4</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">R$ 3.2M</div>
         </div>
       </div>
 
-      {/* Filter Sidebar */}
-      <div
-        className={`fixed top-0 left-0 h-full bg-blue-900 text-white transition-transform duration-300 z-50 ${
-          isFilterOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        style={{ width: '280px' }}
-      >
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">FILTROS</h2>
-            <button onClick={() => setIsFilterOpen(false)}>
-              <X size={24} />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm mb-2">Nº PROCESSO SEI</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-blue-800 rounded text-white"
-                placeholder="Search"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2">Nº PRÉ-CONVÊNIO</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-blue-800 rounded text-white"
-                placeholder="Search"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2">Nº PROPOSTA</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-blue-800 rounded text-white"
-                placeholder="Search"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-3">ANALISTA RESPONSÁVEL</label>
-              <div className="grid grid-cols-2 gap-2">
-                {analysts.map((analyst) => (
-                  <button
-                    key={analyst}
-                    onClick={() => setSelectedAnalyst(analyst)}
-                    className={`px-3 py-2 rounded text-sm ${
-                      selectedAnalyst === analyst
-                        ? 'bg-blue-600'
-                        : 'bg-blue-800 hover:bg-blue-700'
-                    }`}
-                  >
-                    {analyst}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2">DATA DE ENTRADA NO CAFT</label>
-              <div className="flex gap-2">
-                <input type="date" className="flex-1 px-3 py-2 bg-blue-800 rounded text-white" defaultValue="2024-05-09" />
-                <input type="date" className="flex-1 px-3 py-2 bg-blue-800 rounded text-white" defaultValue="2024-12-24" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2">DATA DE FORMALIZAÇÃO</label>
-              <div className="flex gap-2">
-                <input type="date" className="flex-1 px-3 py-2 bg-blue-800 rounded text-white" defaultValue="2024-07-30" />
-                <input type="date" className="flex-1 px-3 py-2 bg-blue-800 rounded text-white" defaultValue="2024-12-18" />
-              </div>
-            </div>
-
-            <button className="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded mt-4">
-              🔄 LIMPAR FILTROS
-            </button>
-          </div>
+      {/* Tabela: Demanda por Técnico */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="p-4 border-b border-slate-700">
+          <h2 className="text-xl font-semibold text-slate-100">Demanda por Técnico</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Responsável
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  GND3
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  GND4
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  TM - Formalização
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  TM - Parecer
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700">
+              {demandaPorTecnico.map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-700/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
+                    {row.responsavel}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.gnd3}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.gnd4}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.tmFormalizacao}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.tmParecer}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Overlay */}
-      {isFilterOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsFilterOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">INDICAÇÃO (TOTAL)</div>
-            <div className="text-2xl font-bold">R$ 52.705.262</div>
-          </div>
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">PROCESSOS SEI</div>
-            <div className="text-2xl font-bold">199</div>
-          </div>
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">REPRESENTAÇÃO</div>
-            <div className="text-2xl font-bold">100%</div>
-          </div>
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">CONTRAPARTIDA</div>
-            <div className="text-2xl font-bold">R$ 259.829</div>
-          </div>
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">MÉDIA EM DIAS - ELABORAÇÃO</div>
-            <div className="text-2xl font-bold">3</div>
-          </div>
+      {/* Tabela: Status do Processo por Analista Responsável */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="p-4 border-b border-slate-700">
+          <h2 className="text-xl font-semibold text-slate-100">Status do Processo por Analista Responsável</h2>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">MÉDIA EM DIAS - FORMALIZAÇÃO</div>
-            <div className="text-2xl font-bold">124</div>
-          </div>
-          <div className="bg-blue-900 text-white p-4 rounded">
-            <div className="text-sm">VALOR GND 3</div>
-            <div className="text-2xl font-bold">R$ 34.951.896</div>
-          </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="text-center font-semibold mb-4">Entrada na CAFT • Formalizados</h3>
-            <div ref={lineChartRef}></div>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                <span className="text-sm">Entrada na CAFT</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500 rounded"></div>
-                <span className="text-sm">Formalizados</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded shadow">
-            <h3 className="text-center font-semibold mb-4">STATUS DOS PROCESSOS (CONSOLIDADOS)</h3>
-            <div ref={statusChartRef}></div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-center font-semibold mb-4">SITUAÇÃO</h3>
-          <div ref={situationChartRef}></div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Responsável
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Finalizado
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700">
+              {statusPorAnalista.map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-700/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
+                    {row.responsavel}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.finalizado}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.total}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+
+      {/* Tabela: Concluídos por Analista Responsável */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="p-4 border-b border-slate-700">
+          <h2 className="text-xl font-semibold text-slate-100">Concluídos por Analista Responsável</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Responsável
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Finalizado
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700">
+              {concluidosPorAnalista.map((row, idx) => (
+                <tr key={idx} className="hover:bg-slate-700/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
+                    {row.responsavel}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.finalizado}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    {row.total}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Status dos Processos (Consolidados) */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">Status dos Processos (Consolidados)</h2>
+          <svg
+            ref={statusChartRef}
+            width="100%"
+            height="300"
+            viewBox="0 0 400 300"
+            style={{ background: '#0f172a' }}
+          />
+        </div>
+
+        {/* Situação */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">Situação</h2>
+          <svg
+            ref={situacaoChartRef}
+            width="100%"
+            height="300"
+            viewBox="0 0 400 300"
+            style={{ background: '#0f172a' }}
+          />
+        </div>
+      </div>
+    </section>
   );
-};
-
-export default Repasses;
+}

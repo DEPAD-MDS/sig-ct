@@ -1,8 +1,8 @@
 import { useMsal } from "@azure/msal-react";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Home, Bell, CheckSquare, Settings, BookOpen, UserPlus, List, HelpCircle, Menu, ChevronLeft, ChevronRight, type LucideIcon,  } from 'lucide-react';
+import { Home, Bell, CheckSquare, Settings, BookOpen, List, HelpCircle, Menu, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
 
 // Tipos
 type Theme = 'light' | 'dark';
@@ -10,6 +10,7 @@ type Theme = 'light' | 'dark';
 interface MenuItem {
     name: string;
     icon: LucideIcon;
+    path: string;
 }
 
 interface LogoProps {
@@ -24,6 +25,7 @@ interface ToggleButtonProps {
 interface MenuItemProps {
     item: MenuItem;
     isCollapsed: boolean;
+    isActive: boolean;
 }
 
 interface UserProfileProps {
@@ -67,7 +69,7 @@ function Logo({ isCollapsed }: LogoProps) {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="flex items-center gap-3 overflow-hidden"
                 >
-                    <img src="/sigct-minimal-logo-white.svg"/>
+                    <img src="/sigct-minimal-logo-white.svg" alt="SIGCT Logo" />
                 </motion.div>
             )}
         </AnimatePresence>
@@ -81,7 +83,7 @@ function ToggleButton({ isCollapsed, onClick }: ToggleButtonProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClick}
-            className="p-2  rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 "
+            className="p-2 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
         >
             {isCollapsed ? (
@@ -94,44 +96,50 @@ function ToggleButton({ isCollapsed, onClick }: ToggleButtonProps) {
 }
 
 // Componente de Menu Item
-function MenuItem({ item, isCollapsed } : any) {
+function MenuItem({ item, isCollapsed, isActive }: MenuItemProps) {
     const Icon = item.icon;
     
     return (
-        <motion.button
-            whileHover={{ x: isCollapsed ? 0 : 2 }}
-            className="w-full cursor-pointer flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors relative group"
-        >
-            <Icon className="w-5 h-5 flex-shrink-0" />
-            
-            <AnimatePresence mode="wait">
-                {!isCollapsed && (
-                    <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="font-medium text-sm whitespace-nowrap"
-                    >
+        <Link to={item.path}>
+            <motion.div
+                whileHover={{ x: isCollapsed ? 0 : 2 }}
+                className={`w-full cursor-pointer flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative group ${
+                    isActive 
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                }`}
+            >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                
+                <AnimatePresence mode="wait">
+                    {!isCollapsed && (
+                        <motion.span
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="font-medium text-sm whitespace-nowrap"
+                        >
+                            {item.name}
+                        </motion.span>
+                    )}
+                </AnimatePresence>
+                
+                {/* Tooltip para modo colapsado */}
+                {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
                         {item.name}
-                    </motion.span>
+                    </div>
                 )}
-            </AnimatePresence>
-            
-            {/* Tooltip para modo colapsado */}
-            {isCollapsed && (
-                <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
-                    {item.name}
-                </div>
-            )}
-        </motion.button>
+            </motion.div>
+        </Link>
     );
 }
 
 // Componente de User Profile
-function UserProfile({ userName, userEmail, userInitial, isCollapsed } : any) {
+function UserProfile({ userName, userEmail, userInitial, isCollapsed }: UserProfileProps) {
     return (
-        <div className="flex gap-3 p-5  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center  relative group">
+        <div className="flex gap-3 p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center relative group">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm font-bold">{userInitial}</span>
             </div>
@@ -163,7 +171,7 @@ function UserProfile({ userName, userEmail, userInitial, isCollapsed } : any) {
 }
 
 // Componente de Mobile Header
-function MobileHeader({ onMenuClick } : any) {
+function MobileHeader({ onMenuClick }: MobileHeaderProps) {
     return (
         <div className="lg:hidden h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 flex items-center justify-between flex-shrink-0">
             <motion.button
@@ -184,22 +192,23 @@ function MobileHeader({ onMenuClick } : any) {
 // Componente Principal
 export default function DashboardLayout() {
     const { accounts } = useMsal();
+    const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const theme = usePreferredTheme();
 
-    const menuItems = [
-        { name: 'Geral', icon: Home },
-        { name: 'Repasses', icon: Bell },
-        { name: 'CEBAS', icon: CheckSquare },
-        { name: 'Monitoramento', icon: Settings }
+    const menuItems: MenuItem[] = [
+        { name: 'Geral', icon: Home, path: '/dashboard' },
+        { name: 'Repasses', icon: Bell, path: '/dashboard/repasses' },
+        { name: 'CEBAS', icon: CheckSquare, path: '/dashboard/cebas' },
+        { name: 'Monitoramento', icon: Settings, path: '/dashboard/monitoramento' }
     ];
 
-    const otherItems = [
-        { name: 'Configurações', icon: Settings },
-        { name: 'Documentação', icon: BookOpen },
-        { name: 'Index', icon: List },
-        { name: 'Suporte', icon: HelpCircle }
+    const otherItems: MenuItem[] = [
+        { name: 'Configurações', icon: Settings, path: '/dashboard/configuracoes' },
+        { name: 'Documentação', icon: BookOpen, path: '/dashboard/documentacao' },
+        { name: 'Index', icon: List, path: '/dashboard/index' },
+        { name: 'Suporte', icon: HelpCircle, path: '/dashboard/suporte' }
     ];
 
     useEffect(() => {
@@ -210,13 +219,20 @@ export default function DashboardLayout() {
         }
     }, [theme]);
 
-    if (accounts.length === 0) {
+    // Lógica de autenticação - mesma lógica do seu código original
+    if (accounts.length > 0) {
+        // Usuário logado, continua com o layout
+    } else {
+        // Não logado, redireciona para login
         return <Navigate to="/" />;
     }
 
     const userName = accounts[0]?.name || "User";
     const userEmail = accounts[0]?.username || "user@example.com";
     const userInitial = userName.charAt(0).toUpperCase();
+    const userPhoto = () => {
+        
+    }
 
     const handleToggle = () => {
         if (window.innerWidth < 1024) {
@@ -262,7 +278,12 @@ export default function DashboardLayout() {
                 <div className="flex-1 px-4 py-4 overflow-y-auto overflow-x-hidden">
                     <nav className="space-y-1">
                         {menuItems.map((item) => (
-                            <MenuItem key={item.name} item={item} isCollapsed={isCollapsed} />
+                            <MenuItem 
+                                key={item.name} 
+                                item={item} 
+                                isCollapsed={isCollapsed}
+                                isActive={location.pathname === item.path}
+                            />
                         ))}
                     </nav>
 
@@ -272,13 +293,18 @@ export default function DashboardLayout() {
                     {/* Seção OTHER */}
                     <nav className="space-y-1">
                         {otherItems.map((item) => (
-                            <MenuItem key={item.name} item={item} isCollapsed={isCollapsed} />
+                            <MenuItem 
+                                key={item.name} 
+                                item={item} 
+                                isCollapsed={isCollapsed}
+                                isActive={location.pathname === item.path}
+                            />
                         ))}
                     </nav>
                 </div>
 
                 {/* User Profile */}
-                <div className=" border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className="border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <UserProfile 
                         userName={userName}
                         userEmail={userEmail}
@@ -287,6 +313,7 @@ export default function DashboardLayout() {
                     />
                 </div>
             </motion.aside>
+
             {/* Conteúdo principal */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 <MobileHeader onMenuClick={() => setIsMobileOpen(true)} />

@@ -1,42 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+import { Upload, MapPin, TrendingUp } from 'lucide-react';
 
-// Simplified GeoJSON for Brazilian states (simplified for demonstration)
-const brazilGeoJSON = {
-  type: "FeatureCollection",
-  features: [
-    // Southeast
-    { type: "Feature", id: "SP", properties: { name: "São Paulo", region: "Southeast" }, geometry: { type: "Polygon", coordinates: [[[-50.0, -22.0], [-47.0, -22.0], [-44.0, -24.0], [-46.0, -25.0], [-48.5, -25.0], [-50.0, -24.0], [-50.0, -22.0]]] }},
-    { type: "Feature", id: "RJ", properties: { name: "Rio de Janeiro", region: "Southeast" }, geometry: { type: "Polygon", coordinates: [[[-44.0, -22.0], [-41.0, -22.0], [-41.0, -23.5], [-43.0, -23.5], [-44.0, -23.0], [-44.0, -22.0]]] }},
-    { type: "Feature", id: "MG", properties: { name: "Minas Gerais", region: "Southeast" }, geometry: { type: "Polygon", coordinates: [[[-50.0, -15.0], [-46.0, -15.0], [-44.0, -17.0], [-43.0, -21.0], [-45.0, -22.5], [-48.0, -22.0], [-51.0, -20.0], [-51.0, -16.0], [-50.0, -15.0]]] }},
-    { type: "Feature", id: "ES", properties: { name: "Espírito Santo", region: "Southeast" }, geometry: { type: "Polygon", coordinates: [[[-41.5, -18.5], [-40.0, -18.5], [-40.0, -21.0], [-41.5, -21.0], [-41.5, -18.5]]] }},
-    
-    // South
-    { type: "Feature", id: "PR", properties: { name: "Paraná", region: "South" }, geometry: { type: "Polygon", coordinates: [[[-54.0, -23.0], [-52.0, -23.0], [-48.0, -25.0], [-48.5, -26.5], [-53.0, -26.5], [-54.5, -25.5], [-54.0, -23.0]]] }},
-    { type: "Feature", id: "SC", properties: { name: "Santa Catarina", region: "South" }, geometry: { type: "Polygon", coordinates: [[[-53.5, -26.0], [-51.0, -26.0], [-48.5, -27.0], [-48.5, -29.0], [-50.0, -29.5], [-53.5, -28.5], [-53.5, -26.0]]] }},
-    { type: "Feature", id: "RS", properties: { name: "Rio Grande do Sul", region: "South" }, geometry: { type: "Polygon", coordinates: [[[-57.0, -28.0], [-54.0, -28.0], [-50.0, -29.0], [-49.7, -30.5], [-50.5, -31.5], [-53.0, -33.0], [-54.0, -32.5], [-57.5, -30.5], [-57.0, -28.0]]] }},
-    
-    // Northeast
-    { type: "Feature", id: "BA", properties: { name: "Bahia", region: "Northeast" }, geometry: { type: "Polygon", coordinates: [[[-46.0, -9.0], [-43.0, -9.0], [-38.0, -11.0], [-37.5, -15.0], [-39.0, -18.0], [-41.0, -18.0], [-43.0, -16.0], [-46.5, -13.0], [-46.0, -9.0]]] }},
-    { type: "Feature", id: "PE", properties: { name: "Pernambuco", region: "Northeast" }, geometry: { type: "Polygon", coordinates: [[[-41.0, -7.5], [-39.0, -7.5], [-35.0, -8.0], [-35.0, -9.5], [-37.0, -9.5], [-41.0, -8.5], [-41.0, -7.5]]] }},
-    { type: "Feature", id: "CE", properties: { name: "Ceará", region: "Northeast" }, geometry: { type: "Polygon", coordinates: [[[-41.5, -3.0], [-38.5, -3.0], [-37.0, -4.5], [-37.5, -7.5], [-40.5, -7.5], [-41.5, -5.5], [-41.5, -3.0]]] }},
-    
-    // North
-    { type: "Feature", id: "AM", properties: { name: "Amazonas", region: "North" }, geometry: { type: "Polygon", coordinates: [[[-73.0, -2.0], [-68.0, -1.0], [-60.0, -1.5], [-56.5, -2.5], [-57.0, -7.0], [-63.0, -8.0], [-69.0, -8.5], [-73.0, -7.0], [-73.0, -2.0]]] }},
-    { type: "Feature", id: "PA", properties: { name: "Pará", region: "North" }, geometry: { type: "Polygon", coordinates: [[[-59.0, -1.0], [-54.0, 2.5], [-48.0, -1.0], [-48.5, -6.0], [-52.0, -8.0], [-58.0, -7.0], [-59.0, -1.0]]] }},
-    
-    // Central-West
-    { type: "Feature", id: "MT", properties: { name: "Mato Grosso", region: "Central-West" }, geometry: { type: "Polygon", coordinates: [[[-61.0, -7.5], [-58.0, -7.5], [-51.0, -10.0], [-51.0, -16.0], [-56.0, -18.0], [-61.0, -16.0], [-61.0, -7.5]]] }},
-    { type: "Feature", id: "GO", properties: { name: "Goiás", region: "Central-West" }, geometry: { type: "Polygon", coordinates: [[[-53.0, -13.0], [-50.0, -13.0], [-46.5, -15.5], [-47.0, -19.0], [-51.0, -19.5], [-53.0, -17.0], [-53.0, -13.0]]] }},
-    { type: "Feature", id: "DF", properties: { name: "Distrito Federal", region: "Central-West" }, geometry: { type: "Polygon", coordinates: [[[-48.2, -15.5], [-47.3, -15.5], [-47.3, -16.0], [-48.2, -16.0], [-48.2, -15.5]]] }},
-    { type: "Feature", id: "MS", properties: { name: "Mato Grosso do Sul", region: "Central-West" }, geometry: { type: "Polygon", coordinates: [[[-58.0, -17.5], [-54.5, -17.5], [-51.0, -20.0], [-50.0, -22.5], [-53.0, -24.0], [-57.0, -23.0], [-58.0, -20.0], [-58.0, -17.5]]] }}
-  ]
-};
+interface DataPoint {
+  id: string;
+  state: string;
+  city: string;
+  vagas: number;
+  lat: number;
+  lng: number;
+}
 
 // Mock data generator
-const generateMockData = () => {
+const generateMockData = (): DataPoint[] => {
   const states = ["SP", "RJ", "MG", "ES", "PR", "SC", "RS", "BA", "PE", "CE", "AM", "PA", "MT", "GO", "DF", "MS"];
-  const cities = {
+  const cities: Record<string, string[]> = {
     SP: ["São Paulo", "Campinas", "Santos", "Ribeirão Preto", "Sorocaba"],
     RJ: ["Rio de Janeiro", "Niterói", "Duque de Caxias", "Nova Iguaçu"],
     MG: ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora"],
@@ -46,7 +23,7 @@ const generateMockData = () => {
     RS: ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas"],
   };
   
-  const data = [];
+  const data: DataPoint[] = [];
   states.forEach(state => {
     const numPoints = Math.floor(Math.random() * 15) + 5;
     for (let i = 0; i < numPoints; i++) {
@@ -69,10 +46,15 @@ export default function Geral() {
   const [selectedState, setSelectedState] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [hoveredState, setHoveredState] = useState<string | null>(null);
+  const [data] = useState<DataPoint[]>(generateMockData());
+  const [geoJsonData, setGeoJsonData] = useState<any>(null);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [leafletLoaded, setLeafletLoaded] = useState<boolean>(false);
   
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [data] = useState(generateMockData());
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
+  const markersLayerRef = useRef<any>(null);
+  const statesLayerRef = useRef<any>(null);
 
   // Get available states and cities
   const states = Array.from(new Set(data.map(d => d.state))).sort();
@@ -86,173 +68,224 @@ export default function Geral() {
     .filter(d => selectedCity === 'all' || d.city === selectedCity)
     .sort((a, b) => sortOrder === 'desc' ? b.vagas - a.vagas : a.vagas - b.vagas);
 
-  useEffect(() => {
-    if (!svgRef.current) return;
+  // Handle GeoJSON file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
-
-    const width = 800;
-    const height = 600;
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-
-    const g = svg.append('g');
-
-    // Create projection for Brazil
-    const projection = d3.geoMercator()
-      .center([-52, -15])
-      .scale(800)
-      .translate([width / 2, height / 2]);
-
-    const path = d3.geoPath().projection(projection);
-
-    // Add zoom behavior
-    const zoom = d3.zoom()
-      .scaleExtent([1, 8])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
-      });
-
-    svg.call(zoom as any);
-
-    // Draw states
-    const statesGroup = g.append('g').attr('class', 'states');
+    setUploadStatus('Carregando...');
+    const reader = new FileReader();
     
-    statesGroup.selectAll('path')
-      .data(brazilGeoJSON.features)
-      .enter()
-      .append('path')
-      .attr('d', path as any)
-      .attr('fill', (d: any) => {
-        if (selectedState === 'all') {
-          const stateData = filteredData.filter(item => item.state === d.id);
-          const total = stateData.reduce((sum, item) => sum + item.vagas, 0);
-          return total > 0 ? d3.interpolateBlues(Math.min(total / 2000, 1)) : '#1e293b';
-        }
-        return selectedState === d.id ? '#3b82f6' : '#1e293b';
-      })
-      .attr('stroke', (d: any) => hoveredState === d.id ? '#60a5fa' : '#475569')
-      .attr('stroke-width', (d: any) => hoveredState === d.id ? 2 : 1)
-      .style('cursor', 'pointer')
-      .on('mouseover', function(event, d: any) {
-        setHoveredState(d.id);
-        d3.select(this)
-          .attr('stroke', '#60a5fa')
-          .attr('stroke-width', 2);
-      })
-      .on('mouseout', function(event, d: any) {
-        setHoveredState(null);
-        d3.select(this)
-          .attr('stroke', selectedState === d.id ? '#60a5fa' : '#475569')
-          .attr('stroke-width', selectedState === d.id ? 2 : 1);
-      })
-      .on('click', (event, d: any) => {
-        setSelectedState(selectedState === d.id ? 'all' : d.id);
-        setSelectedCity('all');
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        setGeoJsonData(json);
+        setUploadStatus('GeoJSON carregado com sucesso!');
+        setTimeout(() => setUploadStatus(''), 3000);
+      } catch (error) {
+        setUploadStatus('Erro ao carregar arquivo. Verifique se é um GeoJSON válido.');
+        setTimeout(() => setUploadStatus(''), 3000);
+      }
+    };
+    
+    reader.readAsText(file);
+  };
+
+  // Initialize Leaflet map
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current) return;
+
+    // Load Leaflet CSS
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css';
+    document.head.appendChild(link);
+
+    // Load Leaflet JS
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js';
+    script.onload = () => {
+      const L = (window as any).L;
+      
+      // Initialize map
+      const map = L.map(mapRef.current, {
+        center: [-15, -52],
+        zoom: 4,
+        minZoom: 3,
+        maxZoom: 10
       });
 
-    // Add state labels
-    statesGroup.selectAll('text')
-      .data(brazilGeoJSON.features)
-      .enter()
-      .append('text')
-      .attr('transform', (d: any) => `translate(${path.centroid(d as any)})`)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#94a3b8')
-      .attr('font-size', '10px')
-      .attr('font-weight', '600')
-      .attr('pointer-events', 'none')
-      .text((d: any) => d.id);
+      // Add grayscale tile layer with filter
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        className: 'map-tiles'
+      }).addTo(map);
 
-    // Visualize data points or heatmap
-    if (viewMode === 'points') {
-      const pointsGroup = g.append('g').attr('class', 'points');
+      // Add CSS filter for grayscale
+      const style = document.createElement('style');
+      style.textContent = `
+        .map-tiles {
+          filter: grayscale(100%) contrast(1.2) brightness(0.8);
+        }
+      `;
+      document.head.appendChild(style);
+
+      leafletMapRef.current = map;
+      markersLayerRef.current = L.layerGroup().addTo(map);
+      statesLayerRef.current = L.layerGroup().addTo(map);
       
-      const maxVagas = d3.max(filteredData, d => d.vagas) || 1;
-      const radiusScale = d3.scaleSqrt()
-        .domain([0, maxVagas])
-        .range([3, 15]);
+      // Wait for map to be fully loaded
+      map.whenReady(() => {
+        setTimeout(() => {
+          map.invalidateSize();
+          setLeafletLoaded(true);
+        }, 200);
+      });
+    };
+    document.body.appendChild(script);
 
-      pointsGroup.selectAll('circle')
-        .data(filteredData)
-        .enter()
-        .append('circle')
-        .attr('cx', d => projection([d.lng, d.lat])?.[0] || 0)
-        .attr('cy', d => projection([d.lng, d.lat])?.[1] || 0)
-        .attr('r', d => radiusScale(d.vagas))
-        .attr('fill', '#ef4444')
-        .attr('opacity', 0.6)
-        .attr('stroke', '#dc2626')
-        .attr('stroke-width', 1)
-        .style('cursor', 'pointer')
-        .on('mouseover', function(event, d) {
-          d3.select(this)
-            .attr('opacity', 0.9)
-            .attr('stroke-width', 2);
-          
-          // Tooltip
-          const tooltip = g.append('g').attr('class', 'tooltip');
-          const [x, y] = projection([d.lng, d.lat]) || [0, 0];
-          
-          tooltip.append('rect')
-            .attr('x', x + 10)
-            .attr('y', y - 40)
-            .attr('width', 140)
-            .attr('height', 60)
-            .attr('fill', '#1e293b')
-            .attr('stroke', '#475569')
-            .attr('rx', 4);
-          
-          tooltip.append('text')
-            .attr('x', x + 20)
-            .attr('y', y - 20)
-            .attr('fill', '#f1f5f9')
-            .attr('font-size', '12px')
-            .text(`${d.city}, ${d.state}`);
-          
-          tooltip.append('text')
-            .attr('x', x + 20)
-            .attr('y', y - 5)
-            .attr('fill', '#94a3b8')
-            .attr('font-size', '11px')
-            .text(`Vagas: ${d.vagas}`);
-        })
-        .on('mouseout', function() {
-          d3.select(this)
-            .attr('opacity', 0.6)
-            .attr('stroke-width', 1);
-          g.selectAll('.tooltip').remove();
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update GeoJSON layer
+  useEffect(() => {
+    if (!leafletLoaded || !leafletMapRef.current || !statesLayerRef.current) return;
+    if (!(window as any).L) return;
+
+    const L = (window as any).L;
+    statesLayerRef.current.clearLayers();
+
+    if (!geoJsonData) return;
+
+    // Calculate state statistics
+    const stateStats: Record<string, number> = {};
+    filteredData.forEach(item => {
+      if (!stateStats[item.state]) {
+        stateStats[item.state] = 0;
+      }
+      stateStats[item.state] += item.vagas;
+    });
+
+    const maxVagas = Math.max(...Object.values(stateStats), 1);
+
+    // Add GeoJSON layer
+    const geoJsonLayer = L.geoJSON(geoJsonData, {
+      style: (feature: any) => {
+        const stateId = feature.properties.sigla || feature.properties.UF || feature.properties.id;
+        const total = stateStats[stateId] || 0;
+        const opacity = selectedState === 'all' ? Math.min(total / maxVagas, 0.8) : 0.3;
+        
+        return {
+          fillColor: selectedState === stateId ? '#3b82f6' : '#60a5fa',
+          weight: selectedState === stateId ? 3 : 1,
+          opacity: 1,
+          color: selectedState === stateId ? '#1d4ed8' : '#475569',
+          fillOpacity: selectedState === stateId ? 0.7 : opacity
+        };
+      },
+      onEachFeature: (feature: any, layer: any) => {
+        const stateId = feature.properties.sigla || feature.properties.UF || feature.properties.id;
+        const stateName = feature.properties.name || feature.properties.nome || stateId;
+        const total = stateStats[stateId] || 0;
+
+        layer.on({
+          mouseover: (e: any) => {
+            const layer = e.target;
+            layer.setStyle({
+              weight: 3,
+              color: '#60a5fa',
+              fillOpacity: 0.7
+            });
+            layer.bindPopup(`
+              <div style="font-family: system-ui; padding: 4px;">
+                <strong style="color: #1e293b; font-size: 14px;">${stateName}</strong><br/>
+                <span style="color: #475569; font-size: 12px;">Vagas: ${total.toLocaleString()}</span>
+              </div>
+            `).openPopup();
+          },
+          mouseout: (e: any) => {
+            geoJsonLayer.resetStyle(e.target);
+            e.target.closePopup();
+          },
+          click: () => {
+            setSelectedState(selectedState === stateId ? 'all' : stateId);
+            setSelectedCity('all');
+          }
         });
-    } else {
-      // Heatmap visualization using contours
-      const pointsGroup = g.append('g').attr('class', 'heatmap');
-      
-      // Create density data
-      const densityData = filteredData.map(d => ({
-        x: projection([d.lng, d.lat])?.[0] || 0,
-        y: projection([d.lng, d.lat])?.[1] || 0,
-        value: d.vagas
-      }));
+      }
+    });
 
-      // Simple heatmap using circles with gradient
-      pointsGroup.selectAll('circle')
-        .data(densityData)
-        .enter()
-        .append('circle')
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y)
-        .attr('r', 30)
-        .attr('fill', d => d3.interpolateYlOrRd(d.value / 500))
-        .attr('opacity', 0.4)
-        .style('pointer-events', 'none');
-    }
+    geoJsonLayer.addTo(statesLayerRef.current);
 
-  }, [viewMode, selectedState, selectedCity, filteredData, hoveredState]);
+  }, [geoJsonData, selectedState, filteredData, leafletLoaded]);
+
+  // Update markers
+  useEffect(() => {
+    if (!leafletLoaded || !leafletMapRef.current || !markersLayerRef.current) return;
+    if (!(window as any).L) return;
+
+    const L = (window as any).L;
+    
+    // Clear existing markers
+    markersLayerRef.current.clearLayers();
+
+    if (filteredData.length === 0) return;
+
+    const maxVagas = Math.max(...filteredData.map(d => d.vagas), 1);
+
+    // Wait for next frame to add markers
+    requestAnimationFrame(() => {
+      filteredData.forEach(item => {
+        try {
+          const radius = Math.sqrt(item.vagas / maxVagas) * 15 + 5;
+          
+          if (viewMode === 'points') {
+            const circle = L.circleMarker([item.lat, item.lng], {
+              radius: radius,
+              fillColor: '#ef4444',
+              color: '#dc2626',
+              weight: 2,
+              opacity: 0.8,
+              fillOpacity: 0.6
+            });
+
+            circle.bindPopup(`
+              <div style="font-family: system-ui; padding: 4px;">
+                <strong style="color: #1e293b; font-size: 13px;">${item.city}, ${item.state}</strong><br/>
+                <span style="color: #475569; font-size: 12px;">Vagas: ${item.vagas}</span>
+              </div>
+            `);
+
+            circle.addTo(markersLayerRef.current);
+          } else {
+            // Heatmap-style circles
+            const circle = L.circle([item.lat, item.lng], {
+              radius: 50000,
+              fillColor: item.vagas > 300 ? '#dc2626' : item.vagas > 150 ? '#f59e0b' : '#3b82f6',
+              color: 'transparent',
+              weight: 0,
+              fillOpacity: 0.3
+            });
+
+            circle.addTo(markersLayerRef.current);
+          }
+        } catch (error) {
+          console.error('Error adding marker:', error);
+        }
+      });
+    });
+
+  }, [filteredData, viewMode, leafletLoaded]);
 
   return (
-    <section className="flex gap-6 flex-col p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-slate-100">Dashboard Geral</h1>
+    <section className="flex gap-6 flex-col p-6 bg-slate-900 min-h-screen">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h1 className="text-3xl font-semibold text-slate-100">Dashboard Geral - Leaflet</h1>
         
         {/* View mode toggle */}
         <div className="flex gap-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
@@ -276,6 +309,55 @@ export default function Geral() {
           >
             Mapa de Calor
           </button>
+        </div>
+      </div>
+
+      {/* GeoJSON Upload */}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Upload className="text-blue-400" size={24} />
+            <div>
+              <h3 className="text-sm font-medium text-slate-200">Upload GeoJSON do IBGE</h3>
+              <p className="text-xs text-slate-400">Formatos aceitos: .json, .geojson</p>
+            </div>
+          </div>
+          
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept=".json,.geojson"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <span className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+              Escolher Arquivo
+            </span>
+          </label>
+
+          {uploadStatus && (
+            <div className={`text-sm px-3 py-1 rounded ${
+              uploadStatus.includes('sucesso') 
+                ? 'bg-green-900/30 text-green-400' 
+                : uploadStatus.includes('Erro')
+                ? 'bg-red-900/30 text-red-400'
+                : 'bg-blue-900/30 text-blue-400'
+            }`}>
+              {uploadStatus}
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-4 text-xs text-slate-400">
+          <p>💡 Baixe o GeoJSON oficial dos estados brasileiros em:</p>
+          <a 
+            href="https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=intermediaria&intrarregiao=UF" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            API IBGE - Malhas Territoriais
+          </a>
         </div>
       </div>
 
@@ -327,36 +409,56 @@ export default function Geral() {
       </div>
 
       {/* Map visualization */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 overflow-hidden">
-        <svg
-          ref={svgRef}
-          width="100%"
-          height="600"
-          viewBox="0 0 800 600"
-          style={{ background: '#0f172a' }}
+      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div 
+          ref={mapRef} 
+          style={{ 
+            width: '100%', 
+            height: '600px',
+            background: '#0f172a'
+          }}
         />
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Card1</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">
-            {filteredData.length}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+          <div className="flex items-center gap-3">
+            <MapPin className="text-blue-400" size={24} />
+            <div>
+              <div className="text-sm font-medium text-slate-400">Total de Pontos</div>
+              <div className="text-2xl font-semibold text-slate-100 mt-1">
+                {filteredData.length}
+              </div>
+            </div>
           </div>
         </div>
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Total de Vagas</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">
-            {filteredData.reduce((sum, d) => sum + d.vagas, 0).toLocaleString()}
+        
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="text-green-400" size={24} />
+            <div>
+              <div className="text-sm font-medium text-slate-400">Total de Vagas</div>
+              <div className="text-2xl font-semibold text-slate-100 mt-1">
+                {filteredData.reduce((sum, d) => sum + d.vagas, 0).toLocaleString()}
+              </div>
+            </div>
           </div>
         </div>
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Total de vagas</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">
-            {filteredData.length > 0 
-              ? Math.round(filteredData.reduce((sum, d) => sum + d.vagas, 0) / filteredData.length)
-              : 0}
+        
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+              Ø
+            </div>
+            <div>
+              <div className="text-sm font-medium text-slate-400">Média de Vagas</div>
+              <div className="text-2xl font-semibold text-slate-100 mt-1">
+                {filteredData.length > 0 
+                  ? Math.round(filteredData.reduce((sum, d) => sum + d.vagas, 0) / filteredData.length)
+                  : 0}
+              </div>
+            </div>
           </div>
         </div>
       </div>
