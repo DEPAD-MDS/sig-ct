@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
 "scripts": {
-    "fastapi-dev": "pip install -r requirements.txt && cd ./api && python3 -m uvicorn main:app --reload",
+    "fastapi-dev": "pip3 install -r requirements.txt && cd ./api && python3 -m uvicorn main:app --reload",
     "build": "vite build",
     "vite-dev": "vite dev",
     "dev": "concurrently \"npm run vite-dev\" \"npm run fastapi-dev\"",
