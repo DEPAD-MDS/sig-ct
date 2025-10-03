@@ -1,8 +1,13 @@
 {
-  "routes": [
+  "version": 3,
+  "builds": [
     {
-      "src": "/(.*)",
-      "dest": "api/wsgi.py"
+      "src": "package.json",
+      "use": "@vercel/static-build"
+    },
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
     }
   ]
 }

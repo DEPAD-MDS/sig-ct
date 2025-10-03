@@ -2,14 +2,15 @@
   "name": "sig-ct",
   "private": true,
   "type": "module",
-"scripts": {
+  "scripts": {
     "fastapi-dev": "pip3 install -r requirements.txt && cd ./api && python3 -m uvicorn main:app --reload",
     "build": "vite build",
     "vite-dev": "vite dev",
     "dev": "concurrently \"npm run vite-dev\" \"npm run fastapi-dev\"",
     "build-all": "concurrently \"npm run build\" \"npm run fastapi-dev\"",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "start": "vite preview",
+    "typecheck": "react-router typegen && tsc",
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.24.0",
