@@ -7,6 +7,7 @@
     "build": "vite build",
     "vite-dev": "vite dev",
     "dev": "concurrently \"npm run vite-dev\" \"npm run fastapi-dev\"",
+    "build-all": "concurrently \"npm run build\" \"npm run fastapi-dev\"",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
   },
