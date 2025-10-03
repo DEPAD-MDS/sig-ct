@@ -221,7 +221,7 @@ export default function DashboardLayout() {
 
     // Lógica de autenticação - mesma lógica do seu código original
     if (accounts.length > 0) {
-        // Usuário logado, continua com o layout
+        
     } else {
         // Não logado, redireciona para login
         return <Navigate to="/" />;

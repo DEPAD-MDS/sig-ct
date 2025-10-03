@@ -2,11 +2,13 @@
   "name": "sig-ct",
   "private": true,
   "type": "module",
-  "scripts": {
-  "build": "vite build",
-  "dev": "vite",
-  "start": "react-router-serve ./build/server/index.js",
-  "typecheck": "react-router typegen && tsc"
+"scripts": {
+    "fastapi-dev": "pip install -r requirements.txt && cd ./api && python3 -m uvicorn main:app --reload",
+    "build": "vite build",
+    "vite-dev": "vite dev",
+    "dev": "concurrently \"npm run vite-dev\" \"npm run fastapi-dev\"",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.24.0",
@@ -30,6 +32,7 @@
     "@types/node": "^22",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
+    "concurrently": "^9.2.1",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
     "vite": "^7.1.7",
