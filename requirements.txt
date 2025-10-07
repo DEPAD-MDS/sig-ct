@@ -15,4 +15,8 @@ starlette==0.47.3
 typing-inspection==0.4.1
 typing_extensions==4.15.0
 urllib3==2.5.0
+<<<<<<< HEAD
 uvicorn==0.35.0
+=======
+uvicorn==0.35.0
+>>>>>>> cf23bfc9cb748394d5a03667caa0ceacd42a355e
