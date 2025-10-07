@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from modules.setores.geral import get_filtered_geral_data, get_geral_data_from_token
-from modules.user import get_user_from_token
-from dependencies.auth_dependecies import get_current_token
+from api.modules.setores.geral import get_filtered_geral_data, get_geral_data_from_token
+from api.modules.user import get_user_from_token
+from api.dependencies.auth_dependecies import get_current_token
 
 router = APIRouter()
 

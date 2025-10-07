@@ -2,7 +2,7 @@ import json
 import time
 import requests
 from fastapi import HTTPException
-from utils.cache import token_cache, CACHE_TIMEOUT
+from api.utils.cache import token_cache, CACHE_TIMEOUT
 
 async def get_geral_data_from_token(token: str) -> dict:
     """
