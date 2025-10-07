@@ -8,10 +8,6 @@ from api.utils.cache import token_cache, CACHE_TIMEOUT
 async def validate_microsoft_token(token: str) -> dict:
     GRAPH_API_URL = "https://graph.microsoft.com/v1.0/me"
 
-    """
-    Valida o token com a Microsoft Graph API e retorna os dados do usuário
-    """
-    # Verifica se o token está no cache
     if token in token_cache:
         cached_data = token_cache[token]
         if time.time() - cached_data['timestamp'] < CACHE_TIMEOUT:
@@ -29,7 +25,6 @@ async def validate_microsoft_token(token: str) -> dict:
         
         user_data = response.json()
         
-        # Adiciona ao cache
         token_cache[token] = {
             'user_data': user_data,
             'timestamp': time.time()
@@ -53,60 +48,72 @@ async def validate_microsoft_token(token: str) -> dict:
 
 
 async def auth_middleware(request: Request, call_next):
-    """
-    Middleware que valida o token de autorização com Microsoft Graph API
-    """
-    # Rotas públicas que não requerem autenticação
+    if request.method == "OPTIONS":
+        response = JSONResponse(content={"message": "OK"})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
     public_routes = ["/api/v1/public"]
     
     if any(request.url.path.startswith(route) for route in public_routes):
-        return await call_next(request)
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     
-    # Verifica se o header Authorization existe
     auth_header = request.headers.get("Authorization")
     
     if not auth_header:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=401,
             content={"message": "Header Authorization é obrigatório"}
         )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     
-    # Verifica se o header está no formato correto
     if not auth_header.startswith("Bearer "):
-        return JSONResponse(
+        response = JSONResponse(
             status_code=401,
             content={"message": "Formato inválido. Use: Bearer <token>"}
         )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     
-    # Extrai o token
     token = auth_header.replace("Bearer ", "").strip()
     
     if not token:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=401,
             content={"message": "Token não fornecido"}
         )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     
     try:
-        # Valida o token com a Microsoft Graph API
         user_data = await validate_microsoft_token(token)
         
-        # Adiciona os dados do usuário ao request state para uso nas rotas
         request.state.user = user_data
         request.state.token = token
         
-        # Continua com a requisição
         response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
         
     except HTTPException as he:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=he.status_code,
             content={"message": he.detail}
         )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     
     except Exception as e:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=500,
             content={"message": f"Erro interno: {str(e)}"}
         )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response

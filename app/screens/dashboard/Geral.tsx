@@ -1,467 +1,1016 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, MapPin, TrendingUp } from 'lucide-react';
+import { Search, MapPin, Users, UserCheck, Baby, Building, Calendar, ArrowLeft, Filter, X } from 'lucide-react';
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from 'msalConfig';
 
-interface DataPoint {
-  id: string;
-  state: string;
-  city: string;
-  vagas: number;
-  lat: number;
-  lng: number;
+// Importações do Leaflet
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix para ícones padrão do Leaflet em React
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+interface Comunidade {
+  id: number;
+  CNPJ: string;
+  "RAZÃO SOCIAL": string;
+  "NOME FANTASIA": string | null;
+  "CONTRATO/ANO": string | null;
+  UF: string;
+  MUNICIPIO: string;
+  "ENDEREÇO": string | null;
+  TELEFONE: string | null;
+  EMAIL: string | null;
+  "VAGAS CONTRATADAS": number | null;
+  "ADULTO MASC": number | null;
+  "ADULTO FEMININO": number | null;
+  "MÃES": number | null;
+  "PREVISÃO DE RECURSO FINACEIRO/ANO": number | null;
+  "PREVISÃO DE RECURSO FINACEIRO/MENSAL": number | null;
+  "DATA INICIAL CT": string | null;
+  "DATA VENCIMENTO CT": string | null;
+  LATITUDE: number;
+  LONGITUDE: number;
 }
 
-// Mock data generator
-const generateMockData = (): DataPoint[] => {
-  const states = ["SP", "RJ", "MG", "ES", "PR", "SC", "RS", "BA", "PE", "CE", "AM", "PA", "MT", "GO", "DF", "MS"];
-  const cities: Record<string, string[]> = {
-    SP: ["São Paulo", "Campinas", "Santos", "Ribeirão Preto", "Sorocaba"],
-    RJ: ["Rio de Janeiro", "Niterói", "Duque de Caxias", "Nova Iguaçu"],
-    MG: ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora"],
-    BA: ["Salvador", "Feira de Santana", "Vitória da Conquista"],
-    PR: ["Curitiba", "Londrina", "Maringá", "Ponta Grossa"],
-    SC: ["Florianópolis", "Joinville", "Blumenau", "Chapecó"],
-    RS: ["Porto Alegre", "Caxias do Sul", "Pelotas", "Canoas"],
-  };
-  
-  const data: DataPoint[] = [];
-  states.forEach(state => {
-    const numPoints = Math.floor(Math.random() * 15) + 5;
-    for (let i = 0; i < numPoints; i++) {
-      const stateCities = cities[state] || ["Capital"];
-      data.push({
-        id: `${state}-${i}`,
-        state,
-        city: stateCities[Math.floor(Math.random() * stateCities.length)],
-        vagas: Math.floor(Math.random() * 500) + 10,
-        lat: -15 + Math.random() * 20,
-        lng: -55 + Math.random() * 15
-      });
-    }
-  });
-  return data;
-};
+// Hook personalizado para obter access token
+function useAccessToken() {
+  const { instance, accounts } = useMsal();
+  const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default function Geral() {
-  const [viewMode, setViewMode] = useState<'points' | 'heatmap'>('points');
-  const [selectedState, setSelectedState] = useState<string>('all');
-  const [selectedCity, setSelectedCity] = useState<string>('all');
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [data] = useState<DataPoint[]>(generateMockData());
-  const [geoJsonData, setGeoJsonData] = useState<any>(null);
-  const [uploadStatus, setUploadStatus] = useState<string>('');
-  const [leafletLoaded, setLeafletLoaded] = useState<boolean>(false);
-  
-  const mapRef = useRef<HTMLDivElement>(null);
-  const leafletMapRef = useRef<any>(null);
-  const markersLayerRef = useRef<any>(null);
-  const statesLayerRef = useRef<any>(null);
+  useEffect(() => {
+    const acquireToken = async () => {
+      if (accounts.length === 0) {
+        setError("Nenhum usuário autenticado");
+        return;
+      }
 
-  // Get available states and cities
-  const states = Array.from(new Set(data.map(d => d.state))).sort();
-  const cities = selectedState === 'all' 
-    ? Array.from(new Set(data.map(d => d.city))).sort()
-    : Array.from(new Set(data.filter(d => d.state === selectedState).map(d => d.city))).sort();
-
-  // Filter and sort data
-  const filteredData = data
-    .filter(d => selectedState === 'all' || d.state === selectedState)
-    .filter(d => selectedCity === 'all' || d.city === selectedCity)
-    .sort((a, b) => sortOrder === 'desc' ? b.vagas - a.vagas : a.vagas - b.vagas);
-
-  // Handle GeoJSON file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadStatus('Carregando...');
-    const reader = new FileReader();
-    
-    reader.onload = (e: ProgressEvent<FileReader>) => {
       try {
-        const json = JSON.parse(e.target?.result as string);
-        setGeoJsonData(json);
-        setUploadStatus('GeoJSON carregado com sucesso!');
-        setTimeout(() => setUploadStatus(''), 3000);
-      } catch (error) {
-        setUploadStatus('Erro ao carregar arquivo. Verifique se é um GeoJSON válido.');
-        setTimeout(() => setUploadStatus(''), 3000);
+        const response = await instance.acquireTokenSilent({
+          ...loginRequest,
+          account: accounts[0]
+        });
+        setToken(response.accessToken);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || "Erro ao obter token");
       }
     };
-    
-    reader.readAsText(file);
+
+    acquireToken();
+  }, [instance, accounts]);
+
+  return { token, error };
+}
+
+export default function Geral() {
+  // Estados principais
+  const [viewMode, setViewMode] = useState<'dashboard' | 'search' | 'detail'>('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [data, setData] = useState<Comunidade[]>([]);
+  const [filteredData, setFilteredData] = useState<Comunidade[]>([]);
+  const [searchResults, setSearchResults] = useState<Comunidade[]>([]);
+  const [selectedComunidade, setSelectedComunidade] = useState<Comunidade | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Estados do mapa
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  
+  // Estados dos filtros
+  const [filters, setFilters] = useState({
+    uf: 'all',
+    municipio: 'all',
+    vagasMin: '',
+    vagasMax: '',
+    maesMin: '',
+    maesMax: '',
+    mascMin: '',
+    mascMax: '',
+    femMin: '',
+    femMax: '',
+    sortVencimento: 'none'
+  });
+
+  // Token de acesso
+  const { token, error } = useAccessToken();
+
+  // Função para fazer requisições autenticadas
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    if (!token) {
+      throw new Error("Token não disponível");
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    return response;
   };
 
-  // Initialize Leaflet map
+  // Carregar dados gerais
+  const fetchData = async () => {
+    if (!token) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth('http://127.0.0.1:8000/api/data/geral/');
+      const result = await response.json();
+      setData(result.data || []);
+      setFilteredData(result.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      setData([]);
+      setFilteredData([]);
+    }
+    setLoading(false);
+  };
+
+  // Carregar dados quando token estiver disponível
   useEffect(() => {
-    if (!mapRef.current || leafletMapRef.current) return;
+    if (token) {
+      fetchData();
+    }
+  }, [token]);
 
-    // Load Leaflet CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css';
-    document.head.appendChild(link);
-
-    // Load Leaflet JS
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js';
-    script.onload = () => {
-      const L = (window as any).L;
-      
-      // Initialize map
-      const map = L.map(mapRef.current, {
-        center: [-15, -52],
-        zoom: 4,
-        minZoom: 3,
-        maxZoom: 10
-      });
-
-      // Add grayscale tile layer with filter
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        className: 'map-tiles'
-      }).addTo(map);
-
-      // Add CSS filter for grayscale
-      const style = document.createElement('style');
-      style.textContent = `
-        .map-tiles {
-          filter: grayscale(100%) contrast(1.2) brightness(0.8);
+  // Buscar comunidade específica
+  const handleSearch = async (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchQuery.trim() && token) {
+      setLoading(true);
+      try {
+        const response = await fetchWithAuth(`http://127.0.0.1:8000/api/data/geral/filter?name=${encodeURIComponent(searchQuery)}`);
+        const result = await response.json();
+        const searchData = result.data || [];
+        
+        if (searchData.length === 1) {
+          setSelectedComunidade(searchData[0]);
+          setViewMode('detail');
+        } else if (searchData.length > 1) {
+          setSearchResults(searchData);
+          setViewMode('search');
+        } else {
+          setSearchResults([]);
+          setViewMode('search');
         }
-      `;
-      document.head.appendChild(style);
+      } catch (error) {
+        console.error('Erro na busca:', error);
+        setSearchResults([]);
+        setViewMode('search');
+      }
+      setLoading(false);
+    }
+  };
 
-      leafletMapRef.current = map;
-      markersLayerRef.current = L.layerGroup().addTo(map);
-      statesLayerRef.current = L.layerGroup().addTo(map);
-      
-      // Wait for map to be fully loaded
-      map.whenReady(() => {
-        setTimeout(() => {
-          map.invalidateSize();
-          setLeafletLoaded(true);
-        }, 200);
+  // Aplicar filtros
+  useEffect(() => {
+    let filtered = [...data];
+
+    if (filters.uf !== 'all') {
+      filtered = filtered.filter(item => item.UF === filters.uf);
+    }
+
+    if (filters.municipio !== 'all') {
+      filtered = filtered.filter(item => item.MUNICIPIO === filters.municipio);
+    }
+
+    if (filters.vagasMin) {
+      filtered = filtered.filter(item => (item["VAGAS CONTRATADAS"] || 0) >= parseInt(filters.vagasMin));
+    }
+    if (filters.vagasMax) {
+      filtered = filtered.filter(item => (item["VAGAS CONTRATADAS"] || 0) <= parseInt(filters.vagasMax));
+    }
+
+    if (filters.maesMin) {
+      filtered = filtered.filter(item => (item["MÃES"] || 0) >= parseInt(filters.maesMin));
+    }
+    if (filters.maesMax) {
+      filtered = filtered.filter(item => (item["MÃES"] || 0) <= parseInt(filters.maesMax));
+    }
+
+    if (filters.mascMin) {
+      filtered = filtered.filter(item => (item["ADULTO MASC"] || 0) >= parseInt(filters.mascMin));
+    }
+    if (filters.mascMax) {
+      filtered = filtered.filter(item => (item["ADULTO MASC"] || 0) <= parseInt(filters.mascMax));
+    }
+
+    if (filters.femMin) {
+      filtered = filtered.filter(item => (item["ADULTO FEMININO"] || 0) >= parseInt(filters.femMin));
+    }
+    if (filters.femMax) {
+      filtered = filtered.filter(item => (item["ADULTO FEMININO"] || 0) <= parseInt(filters.femMax));
+    }
+
+    if (filters.sortVencimento === 'asc') {
+      filtered.sort((a, b) => {
+        const dateA = a["DATA VENCIMENTO CT"] ? new Date(a["DATA VENCIMENTO CT"]).getTime() : Infinity;
+        const dateB = b["DATA VENCIMENTO CT"] ? new Date(b["DATA VENCIMENTO CT"]).getTime() : Infinity;
+        return dateA - dateB;
       });
-    };
-    document.body.appendChild(script);
+    } else if (filters.sortVencimento === 'desc') {
+      filtered.sort((a, b) => {
+        const dateA = a["DATA VENCIMENTO CT"] ? new Date(a["DATA VENCIMENTO CT"]).getTime() : -Infinity;
+        const dateB = b["DATA VENCIMENTO CT"] ? new Date(b["DATA VENCIMENTO CT"]).getTime() : -Infinity;
+        return dateB - dateA;
+      });
+    }
+
+    setFilteredData(filtered);
+  }, [filters, data]);
+
+  // Inicializar mapa Leaflet
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current || viewMode !== 'dashboard') return;
+
+    // Criar mapa
+    const map = L.map(mapRef.current, {
+      center: [-15, -52],
+      zoom: 4,
+      minZoom: 3,
+      maxZoom: 15,
+      zoomControl: true
+    });
+
+    // Adicionar tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      className: 'map-tiles'
+    }).addTo(map);
+
+    // Aplicar estilo aos tiles
+    const style = document.createElement('style');
+    style.textContent = `
+      .map-tiles { 
+        filter: grayscale(100%) contrast(1.2) brightness(0.8); 
+      }
+      .leaflet-popup-content-wrapper {
+        background: #1e293b;
+        color: white;
+        border-radius: 8px;
+      }
+      .leaflet-popup-tip {
+        background: #1e293b;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Criar layer group para os marcadores
+    markersLayerRef.current = L.layerGroup().addTo(map);
+    leafletMapRef.current = map;
+
+    // Forçar redimensionamento do mapa
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
 
     return () => {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
+        markersLayerRef.current = null;
       }
     };
-  }, []);
+  }, [viewMode]);
 
-  // Update GeoJSON layer
+  // Atualizar marcadores no mapa
   useEffect(() => {
-    if (!leafletLoaded || !leafletMapRef.current || !statesLayerRef.current) return;
-    if (!(window as any).L) return;
-
-    const L = (window as any).L;
-    statesLayerRef.current.clearLayers();
-
-    if (!geoJsonData) return;
-
-    // Calculate state statistics
-    const stateStats: Record<string, number> = {};
-    filteredData.forEach(item => {
-      if (!stateStats[item.state]) {
-        stateStats[item.state] = 0;
-      }
-      stateStats[item.state] += item.vagas;
-    });
-
-    const maxVagas = Math.max(...Object.values(stateStats), 1);
-
-    // Add GeoJSON layer
-    const geoJsonLayer = L.geoJSON(geoJsonData, {
-      style: (feature: any) => {
-        const stateId = feature.properties.sigla || feature.properties.UF || feature.properties.id;
-        const total = stateStats[stateId] || 0;
-        const opacity = selectedState === 'all' ? Math.min(total / maxVagas, 0.8) : 0.3;
-        
-        return {
-          fillColor: selectedState === stateId ? '#3b82f6' : '#60a5fa',
-          weight: selectedState === stateId ? 3 : 1,
-          opacity: 1,
-          color: selectedState === stateId ? '#1d4ed8' : '#475569',
-          fillOpacity: selectedState === stateId ? 0.7 : opacity
-        };
-      },
-      onEachFeature: (feature: any, layer: any) => {
-        const stateId = feature.properties.sigla || feature.properties.UF || feature.properties.id;
-        const stateName = feature.properties.name || feature.properties.nome || stateId;
-        const total = stateStats[stateId] || 0;
-
-        layer.on({
-          mouseover: (e: any) => {
-            const layer = e.target;
-            layer.setStyle({
-              weight: 3,
-              color: '#60a5fa',
-              fillOpacity: 0.7
-            });
-            layer.bindPopup(`
-              <div style="font-family: system-ui; padding: 4px;">
-                <strong style="color: #1e293b; font-size: 14px;">${stateName}</strong><br/>
-                <span style="color: #475569; font-size: 12px;">Vagas: ${total.toLocaleString()}</span>
-              </div>
-            `).openPopup();
-          },
-          mouseout: (e: any) => {
-            geoJsonLayer.resetStyle(e.target);
-            e.target.closePopup();
-          },
-          click: () => {
-            setSelectedState(selectedState === stateId ? 'all' : stateId);
-            setSelectedCity('all');
-          }
-        });
-      }
-    });
-
-    geoJsonLayer.addTo(statesLayerRef.current);
-
-  }, [geoJsonData, selectedState, filteredData, leafletLoaded]);
-
-  // Update markers
-  useEffect(() => {
-    if (!leafletLoaded || !leafletMapRef.current || !markersLayerRef.current) return;
-    if (!(window as any).L) return;
-
-    const L = (window as any).L;
+    if (!leafletMapRef.current || !markersLayerRef.current || filteredData.length === 0) return;
     
-    // Clear existing markers
+    // Limpar marcadores existentes
     markersLayerRef.current.clearLayers();
 
-    if (filteredData.length === 0) return;
-
-    const maxVagas = Math.max(...filteredData.map(d => d.vagas), 1);
-
-    // Wait for next frame to add markers
-    requestAnimationFrame(() => {
-      filteredData.forEach(item => {
+    // Adicionar novos marcadores
+    filteredData.forEach(item => {
+      // Verificar se tem coordenadas válidas
+      if (item.LATITUDE && item.LONGITUDE && 
+          !isNaN(item.LATITUDE) && !isNaN(item.LONGITUDE) &&
+          Math.abs(item.LATITUDE) <= 90 && Math.abs(item.LONGITUDE) <= 180) {
+        
         try {
-          const radius = Math.sqrt(item.vagas / maxVagas) * 15 + 5;
-          
-          if (viewMode === 'points') {
-            const circle = L.circleMarker([item.lat, item.lng], {
-              radius: radius,
-              fillColor: '#ef4444',
-              color: '#dc2626',
-              weight: 2,
-              opacity: 0.8,
-              fillOpacity: 0.6
-            });
+          // Criar marcador com ícone personalizado
+          const marker = L.marker([item.LATITUDE, item.LONGITUDE], {
+            icon: L.divIcon({
+              className: 'custom-marker',
+              html: `
+                <div style="
+                  background: #3b82f6; 
+                  width: 20px; 
+                  height: 20px; 
+                  border-radius: 50%; 
+                  border: 3px solid #1e40af;
+                  cursor: pointer;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                "></div>
+              `,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            })
+          });
 
-            circle.bindPopup(`
-              <div style="font-family: system-ui; padding: 4px;">
-                <strong style="color: #1e293b; font-size: 13px;">${item.city}, ${item.state}</strong><br/>
-                <span style="color: #475569; font-size: 12px;">Vagas: ${item.vagas}</span>
+          // Criar popup com informações
+          const popupContent = `
+            <div style="font-family: system-ui; min-width: 200px; padding: 8px;">
+              <strong style="color: #f1f5f9; font-size: 14px; display: block; margin-bottom: 8px;">
+                ${item["RAZÃO SOCIAL"]}
+              </strong>
+              <div style="color: #cbd5e1; font-size: 12px; margin-bottom: 4px;">
+                📍 ${item.MUNICIPIO}, ${item.UF}
               </div>
-            `);
+              <div style="color: #cbd5e1; font-size: 12px; margin-bottom: 4px;">
+                👥 Vagas: ${item["VAGAS CONTRATADAS"] || 'N/A'}
+              </div>
+              <div style="color: #cbd5e1; font-size: 12px; margin-bottom: 4px;">
+                🚹 Masculino: ${item["ADULTO MASC"] || 'N/A'}
+              </div>
+              <div style="color: #cbd5e1; font-size: 12px; margin-bottom: 4px;">
+                🚺 Feminino: ${item["ADULTO FEMININO"] || 'N/A'}
+              </div>
+              <div style="color: #cbd5e1; font-size: 12px;">
+                👶 Mães: ${item["MÃES"] || 'N/A'}
+              </div>
+              <button onclick="window.detailView && window.detailView(${item.id})" 
+                style="
+                  background: #3b82f6; 
+                  color: white; 
+                  border: none; 
+                  padding: 6px 12px; 
+                  border-radius: 4px; 
+                  cursor: pointer; 
+                  margin-top: 8px; 
+                  font-size: 12px;
+                  width: 100%;
+                ">
+                Ver Detalhes
+              </button>
+            </div>
+          `;
 
-            circle.addTo(markersLayerRef.current);
-          } else {
-            // Heatmap-style circles
-            const circle = L.circle([item.lat, item.lng], {
-              radius: 50000,
-              fillColor: item.vagas > 300 ? '#dc2626' : item.vagas > 150 ? '#f59e0b' : '#3b82f6',
-              color: 'transparent',
-              weight: 0,
-              fillOpacity: 0.3
-            });
+          marker.bindPopup(popupContent);
 
-            circle.addTo(markersLayerRef.current);
-          }
+          // Adicionar evento de clique para abrir detalhes
+          marker.on('click', () => {
+            setSelectedComunidade(item);
+            setViewMode('detail');
+          });
+
+          marker.addTo(markersLayerRef.current);
         } catch (error) {
-          console.error('Error adding marker:', error);
+          console.warn('Erro ao criar marcador para:', item["RAZÃO SOCIAL"], error);
         }
-      });
+      } else {
+        console.warn('Coordenadas inválidas para:', item["RAZÃO SOCIAL"], item.LATITUDE, item.LONGITUDE);
+      }
     });
 
-  }, [filteredData, viewMode, leafletLoaded]);
+    // Ajustar view do mapa para mostrar todos os marcadores se houver dados
+    if (filteredData.length > 0) {
+      const validMarkers = filteredData.filter(item => 
+        item.LATITUDE && item.LONGITUDE && 
+        !isNaN(item.LATITUDE) && !isNaN(item.LONGITUDE)
+      );
 
-  return (
-    <section className="flex gap-6 flex-col p-6 bg-slate-900 min-h-screen">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-3xl font-semibold text-slate-100">Dashboard Geral - Leaflet</h1>
-        
-        {/* View mode toggle */}
-        <div className="flex gap-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
-          <button
-            onClick={() => setViewMode('points')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'points' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Pontos
-          </button>
-          <button
-            onClick={() => setViewMode('heatmap')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'heatmap' 
-                ? 'bg-blue-600 text-white' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Mapa de Calor
-          </button>
+      if (validMarkers.length > 0) {
+        const group = L.featureGroup(
+          validMarkers.map(item => 
+            L.marker([item.LATITUDE, item.LONGITUDE])
+          )
+        );
+        leafletMapRef.current.fitBounds(group.getBounds().pad(0.1));
+      }
+    }
+  }, [filteredData]);
+
+  // Expor função para o popup
+  useEffect(() => {
+    (window as any).detailView = (id: number) => {
+      const comunidade = data.find(item => item.id === id);
+      if (comunidade) {
+        setSelectedComunidade(comunidade);
+        setViewMode('detail');
+      }
+    };
+
+    return () => {
+      (window as any).detailView = null;
+    };
+  }, [data]);
+
+  // Obter listas únicas para filtros
+  const ufs = Array.from(new Set(data.map(item => item.UF))).sort();
+  const municipios = filters.uf === 'all' 
+    ? Array.from(new Set(data.map(item => item.MUNICIPIO))).sort()
+    : Array.from(new Set(data.filter(item => item.UF === filters.uf).map(item => item.MUNICIPIO))).sort();
+
+  // Calcular estatísticas
+  const stats = {
+    totalEntidades: filteredData.length,
+    totalVagas: filteredData.reduce((sum, item) => sum + (item["VAGAS CONTRATADAS"] || 0), 0),
+    totalMasc: filteredData.reduce((sum, item) => sum + (item["ADULTO MASC"] || 0), 0),
+    totalFem: filteredData.reduce((sum, item) => sum + (item["ADULTO FEMININO"] || 0), 0),
+    totalMaes: filteredData.reduce((sum, item) => sum + (item["MÃES"] || 0), 0)
+  };
+
+  // Se houver erro de autenticação
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-900 p-6 flex items-center justify-center">
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center max-w-md">
+          <div className="text-red-400 text-lg mb-4">Erro de Autenticação</div>
+          <div className="text-slate-400 mb-4">{error}</div>
+          <div className="text-slate-500 text-sm">Por favor, faça login novamente.</div>
         </div>
       </div>
+    );
+  }
 
-      {/* GeoJSON Upload */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Upload className="text-blue-400" size={24} />
-            <div>
-              <h3 className="text-sm font-medium text-slate-200">Upload GeoJSON do IBGE</h3>
-              <p className="text-xs text-slate-400">Formatos aceitos: .json, .geojson</p>
+  // Se ainda estiver carregando o token
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-slate-900 p-6 flex items-center justify-center">
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+          <div className="text-blue-400 text-lg mb-4">Obtendo token de acesso...</div>
+          <div className="text-slate-400">Aguarde enquanto configuramos sua sessão.</div>
+        </div>
+      </div>
+    );
+  }
+
+  // [Restante do código permanece igual...]
+  // ... (manter todas as outras funções e renderizações como estão)
+
+  // Renderizar view de detalhes
+  if (viewMode === 'detail' && selectedComunidade) {
+    return (
+      <div className="min-h-screen bg-slate-900 p-6">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => {
+              setViewMode('dashboard');
+              setSelectedComunidade(null);
+              setSearchQuery('');
+            }}
+            className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6"
+          >
+            <ArrowLeft size={20} />
+            Voltar ao Dashboard
+          </button>
+
+          <h1 className="text-3xl font-bold text-white mb-8">{selectedComunidade["RAZÃO SOCIAL"]}</h1>
+            
+          {/* Cards de estatísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+              <div className="flex items-center gap-3">
+                <Users className="text-blue-400" size={24} />
+                <div>
+                  <div className="text-xs text-slate-400">Total de Vagas</div>
+                  <div className="text-xl font-semibold text-white">
+                    {selectedComunidade["VAGAS CONTRATADAS"] || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+              <div className="flex items-center gap-3">
+                <UserCheck className="text-green-400" size={24} />
+                <div>
+                  <div className="text-xs text-slate-400">Adulto Masculino</div>
+                  <div className="text-xl font-semibold text-white">
+                    {selectedComunidade["ADULTO MASC"] || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+              <div className="flex items-center gap-3">
+                <UserCheck className="text-pink-400" size={24} />
+                <div>
+                  <div className="text-xs text-slate-400">Adulto Feminino</div>
+                  <div className="text-xl font-semibold text-white">
+                    {selectedComunidade["ADULTO FEMININO"] || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+              <div className="flex items-center gap-3">
+                <Baby className="text-purple-400" size={24} />
+                <div>
+                  <div className="text-xs text-slate-400">Mães Nutrizes</div>
+                  <div className="text-xl font-semibold text-white">
+                    {selectedComunidade["MÃES"] || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="text-orange-400" size={24} />
+                <div>
+                  <div className="text-xs text-slate-400">Vencimento</div>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedComunidade["DATA VENCIMENTO CT"] || 'N/A'}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept=".json,.geojson"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <span className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-              Escolher Arquivo
-            </span>
-          </label>
 
-          {uploadStatus && (
-            <div className={`text-sm px-3 py-1 rounded ${
-              uploadStatus.includes('sucesso') 
-                ? 'bg-green-900/30 text-green-400' 
-                : uploadStatus.includes('Erro')
-                ? 'bg-red-900/30 text-red-400'
-                : 'bg-blue-900/30 text-blue-400'
-            }`}>
-              {uploadStatus}
+          {/* Informações detalhadas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Informações Básicas</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-slate-400 text-sm">CNPJ:</span>
+                  <p className="text-white">{selectedComunidade.CNPJ}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Nome Fantasia:</span>
+                  <p className="text-white">{selectedComunidade["NOME FANTASIA"] || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Contrato/Ano:</span>
+                  <p className="text-white">{selectedComunidade["CONTRATO/ANO"] || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Localização:</span>
+                  <p className="text-white">{selectedComunidade.MUNICIPIO}, {selectedComunidade.UF}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Contato</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-slate-400 text-sm">Endereço:</span>
+                  <p className="text-white">{selectedComunidade["ENDEREÇO"] || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Telefone:</span>
+                  <p className="text-white">{selectedComunidade.TELEFONE || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Email:</span>
+                  <p className="text-white">{selectedComunidade.EMAIL || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Recursos Financeiros</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-slate-400 text-sm">Previsão Anual:</span>
+                  <p className="text-white">
+                    {selectedComunidade["PREVISÃO DE RECURSO FINACEIRO/ANO"] 
+                      ? `R$ ${selectedComunidade["PREVISÃO DE RECURSO FINACEIRO/ANO"].toLocaleString('pt-BR', {minimumFractionDigits: 2})}` 
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Previsão Mensal:</span>
+                  <p className="text-white">
+                    {selectedComunidade["PREVISÃO DE RECURSO FINACEIRO/MENSAL"] 
+                      ? `R$ ${selectedComunidade["PREVISÃO DE RECURSO FINACEIRO/MENSAL"].toLocaleString('pt-BR', {minimumFractionDigits: 2})}` 
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Datas do Contrato</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-slate-400 text-sm">Data Inicial:</span>
+                  <p className="text-white">{selectedComunidade["DATA INICIAL CT"] || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-sm">Data de Vencimento:</span>
+                  <p className="text-white">{selectedComunidade["DATA VENCIMENTO CT"] || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar view de busca
+  if (viewMode === 'search') {
+    return (
+      <div className="min-h-screen bg-slate-900 p-6">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => {
+              setViewMode('dashboard');
+              setSearchResults([]);
+              setSearchQuery('');
+            }}
+            className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6"
+          >
+            <ArrowLeft size={20} />
+            Voltar ao Dashboard
+          </button>
+
+          <h1 className="text-2xl font-bold text-white mb-6">
+            Resultados da busca: "{searchQuery}"
+          </h1>
+
+          {searchResults.length === 0 ? (
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 text-center">
+              <p className="text-slate-400">Nenhuma comunidade encontrada com esse nome.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {searchResults.map(comunidade => (
+                <div
+                  key={comunidade.id}
+                  onClick={() => {
+                    setSelectedComunidade(comunidade);
+                    setViewMode('detail');
+                  }}
+                  className="bg-slate-800 rounded-lg border border-slate-700 p-6 cursor-pointer hover:border-blue-500 transition-colors"
+                >
+                  <h3 className="font-semibold text-white mb-2 text-sm">
+                    {comunidade["RAZÃO SOCIAL"]}
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p className="text-slate-400">
+                      <span className="text-slate-500">Local:</span> {comunidade.MUNICIPIO}, {comunidade.UF}
+                    </p>
+                    <p className="text-slate-400">
+                      <span className="text-slate-500">CNPJ:</span> {comunidade.CNPJ}
+                    </p>
+                    <p className="text-slate-400">
+                      <span className="text-slate-500">Vagas:</span> {comunidade["VAGAS CONTRATADAS"] || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
-        
-        <div className="mt-4 text-xs text-slate-400">
-          <p>💡 Baixe o GeoJSON oficial dos estados brasileiros em:</p>
-          <a 
-            href="https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=intermediaria&intrarregiao=UF" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 underline"
-          >
-            API IBGE - Malhas Territoriais
-          </a>
-        </div>
       </div>
+    );
+  }
 
-      {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex flex-col gap-2 min-w-[180px]">
-          <label className="text-sm font-medium text-slate-400">Estado</label>
-          <select
-            value={selectedState}
-            onChange={(e) => {
-              setSelectedState(e.target.value);
-              setSelectedCity('all');
+  // Renderizar dashboard principal
+  return (
+    <div className="min-h-screen bg-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-6">Dashboard Geral</h1>
+          
+          {/* Barra de pesquisa */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleSearch}
+              placeholder="Pesquisar comunidade por nome..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-12 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+          </div>
+        </div>
+
+        {/* Botão de filtros */}
+        <div className="mb-6">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-700"
+          >
+            <Filter size={18} />
+            {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+          </button>
+        </div>
+
+        {/* Painel de filtros */}
+        {showFilters && (
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">UF</label>
+                <select
+                  value={filters.uf}
+                  onChange={(e) => setFilters({...filters, uf: e.target.value, municipio: 'all'})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                >
+                  <option value="all">Todos</option>
+                  {ufs.map(uf => (
+                    <option key={uf} value={uf}>{uf}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Município</label>
+                <select
+                  value={filters.municipio}
+                  onChange={(e) => setFilters({...filters, municipio: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  disabled={filters.uf === 'all'}
+                >
+                  <option value="all">Todos</option>
+                  {municipios.map(mun => (
+                    <option key={mun} value={mun}>{mun}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Vagas Min</label>
+                <input
+                  type="number"
+                  value={filters.vagasMin}
+                  onChange={(e) => setFilters({...filters, vagasMin: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Vagas Max</label>
+                <input
+                  type="number"
+                  value={filters.vagasMax}
+                  onChange={(e) => setFilters({...filters, vagasMax: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="999"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Masculino Min</label>
+                <input
+                  type="number"
+                  value={filters.mascMin}
+                  onChange={(e) => setFilters({...filters, mascMin: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Masculino Max</label>
+                <input
+                  type="number"
+                  value={filters.mascMax}
+                  onChange={(e) => setFilters({...filters, mascMax: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="999"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Feminino Min</label>
+                <input
+                  type="number"
+                  value={filters.femMin}
+                  onChange={(e) => setFilters({...filters, femMin: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Feminino Max</label>
+                <input
+                  type="number"
+                  value={filters.femMax}
+                  onChange={(e) => setFilters({...filters, femMax: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="999"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Mães Min</label>
+                <input
+                  type="number"
+                  value={filters.maesMin}
+                  onChange={(e) => setFilters({...filters, maesMin: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Mães Max</label>
+                <input
+                  type="number"
+                  value={filters.maesMax}
+                  onChange={(e) => setFilters({...filters, maesMax: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                  placeholder="999"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Ordenar Vencimento</label>
+                <select
+                  value={filters.sortVencimento}
+                  onChange={(e) => setFilters({...filters, sortVencimento: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white"
+                >
+                  <option value="none">Sem ordenação</option>
+                  <option value="asc">Mais próximo</option>
+                  <option value="desc">Mais distante</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setFilters({
+                uf: 'all',
+                municipio: 'all',
+                vagasMin: '',
+                vagasMax: '',
+                maesMin: '',
+                maesMax: '',
+                mascMin: '',
+                mascMax: '',
+                femMin: '',
+                femMax: '',
+                sortVencimento: 'none'
+              })}
+              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+            >
+              Limpar Filtros
+            </button>
+          </div>
+        )}
+
+        {/* Cards de estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <Building className="text-blue-400" size={24} />
+              <div>
+                <div className="text-xs text-slate-400">Total Entidades</div>
+                <div className="text-2xl font-bold text-white">{stats.totalEntidades}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <Users className="text-green-400" size={24} />
+              <div>
+                <div className="text-xs text-slate-400">Total Vagas</div>
+                <div className="text-2xl font-bold text-white">{stats.totalVagas}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <UserCheck className="text-cyan-400" size={24} />
+              <div>
+                <div className="text-xs text-slate-400">Adulto Masculino</div>
+                <div className="text-2xl font-bold text-white">{stats.totalMasc}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <UserCheck className="text-pink-400" size={24} />
+              <div>
+                <div className="text-xs text-slate-400">Adulto Feminino</div>
+                <div className="text-2xl font-bold text-white">{stats.totalFem}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+            <div className="flex items-center gap-3">
+              <Baby className="text-purple-400" size={24} />
+              <div>
+                <div className="text-xs text-slate-400">Mães Nutrizes</div>
+                <div className="text-2xl font-bold text-white">{stats.totalMaes}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mapa */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden mb-8">
+          <div 
+            ref={mapRef} 
+            style={{ 
+              width: '100%', 
+              height: '500px',
+              background: '#0f172a'
             }}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todos os Estados</option>
-            {states.map(state => (
-              <option key={state} value={state}>{state}</option>
-            ))}
-          </select>
+          />
         </div>
 
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          <label className="text-sm font-medium text-slate-400">Município</label>
-          <select
-            value={selectedCity}
-            onChange={(e) => setSelectedCity(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={selectedState === 'all'}
-          >
-            <option value="all">Todos os Municípios</option>
-            {cities.map(city => (
-              <option key={city} value={city}>{city}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          <label className="text-sm font-medium text-slate-400">Ordenar Vagas</label>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as 'desc' | 'asc')}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="desc">Maior para Menor</option>
-            <option value="asc">Menor para Maior</option>
-          </select>
+        {/* Tabela de dados */}
+        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-700">
+            <h2 className="text-lg font-semibold text-white">Dados Detalhados</h2>
+          </div>
+          
+          {loading ? (
+            <div className="p-8 text-center text-slate-400">Carregando dados...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-900">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Razão Social</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">UF</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Município</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase">Vagas</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase">Masc</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase">Fem</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase">Mães</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Vencimento</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Email</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700">
+                  {filteredData.slice(0, 50).map((item) => (
+                    <tr 
+                      key={item.id} 
+                      className="hover:bg-slate-700 cursor-pointer transition-colors"
+                      onClick={() => {
+                        setSelectedComunidade(item);
+                        setViewMode('detail');
+                      }}
+                    >
+                      <td className="px-4 py-3 text-sm text-white font-medium">
+                        {item["RAZÃO SOCIAL"]}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300">{item.UF}</td>
+                      <td className="px-4 py-3 text-sm text-slate-300">{item.MUNICIPIO}</td>
+                      <td className="px-4 py-3 text-sm text-slate-300 text-center">
+                        {item["VAGAS CONTRATADAS"] || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300 text-center">
+                        {item["ADULTO MASC"] || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300 text-center">
+                        {item["ADULTO FEMININO"] || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300 text-center">
+                        {item["MÃES"] || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300">
+                        {item["DATA VENCIMENTO CT"] || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-300">
+                        {item.EMAIL || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {filteredData.length > 50 && (
+                <div className="px-6 py-3 bg-slate-900 text-center text-sm text-slate-400">
+                  Mostrando 50 de {filteredData.length} registros
+                </div>
+              )}
+              
+              {filteredData.length === 0 && (
+                <div className="px-6 py-8 text-center text-slate-400">
+                  Nenhum registro encontrado com os filtros aplicados.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Map visualization */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div 
-          ref={mapRef} 
-          style={{ 
-            width: '100%', 
-            height: '600px',
-            background: '#0f172a'
-          }}
-        />
-      </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <MapPin className="text-blue-400" size={24} />
-            <div>
-              <div className="text-sm font-medium text-slate-400">Total de Pontos</div>
-              <div className="text-2xl font-semibold text-slate-100 mt-1">
-                {filteredData.length}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="text-green-400" size={24} />
-            <div>
-              <div className="text-sm font-medium text-slate-400">Total de Vagas</div>
-              <div className="text-2xl font-semibold text-slate-100 mt-1">
-                {filteredData.reduce((sum, d) => sum + d.vagas, 0).toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
-              Ø
-            </div>
-            <div>
-              <div className="text-sm font-medium text-slate-400">Média de Vagas</div>
-              <div className="text-2xl font-semibold text-slate-100 mt-1">
-                {filteredData.length > 0 
-                  ? Math.round(filteredData.reduce((sum, d) => sum + d.vagas, 0) / filteredData.length)
-                  : 0}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }
