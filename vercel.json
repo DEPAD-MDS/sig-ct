@@ -1,14 +1,26 @@
 {
+    "version": 2,
     "builds": [
         {
-            "src": "api/main.py",
+            "src": "api/index.py",
             "use": "@vercel/python"
+        },
+        {
+            "src": "package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "build/client"
+            }
         }
     ],
-    "routes":[
+    "routes": [
         {
-            "src" : "/api/v1/(.*)",
-            "dest" : "api/main.py"
+            "src": "/api/(.*)",
+            "dest": "api/index.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/$1"
         }
     ]
 }
