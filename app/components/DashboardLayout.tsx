@@ -1,8 +1,8 @@
 import { useMsal } from "@azure/msal-react";
 import { Navigate, Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { Home, Bell, CheckSquare, Settings, BookOpen, List, HelpCircle, Menu, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Home, Bell, CheckSquare, Settings, BookOpen, List, HelpCircle, Menu, ChevronLeft, ChevronRight, LogOut, type LucideIcon } from 'lucide-react';
 
 // Tipos
 type Theme = 'light' | 'dark';
@@ -33,6 +33,7 @@ interface UserProfileProps {
     userEmail: string;
     userInitial: string;
     isCollapsed: boolean;
+    onLogout: () => void;
 }
 
 interface MobileHeaderProps {
@@ -137,35 +138,97 @@ function MenuItem({ item, isCollapsed, isActive }: MenuItemProps) {
 }
 
 // Componente de User Profile
-function UserProfile({ userName, userEmail, userInitial, isCollapsed }: UserProfileProps) {
+function UserProfile({ userName, userEmail, userInitial, isCollapsed, onLogout }: UserProfileProps) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isMenuOpen]);
+
     return (
-        <div className="flex gap-3 p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center relative group">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm font-bold">{userInitial}</span>
+        <div ref={menuRef} className="relative">
+            <div 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex gap-3 p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center group"
+            >
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">{userInitial}</span>
+                </div>
+                
+                <AnimatePresence mode="wait">
+                    {!isCollapsed && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -10}}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="flex-1 min-w-0"
+                        >
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{userName}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userEmail}</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                
+                {/* Tooltip para usuário colapsado */}
+                {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+                        <p className="font-medium">{userName}</p>
+                        <p className="text-xs text-gray-300">{userEmail}</p>
+                    </div>
+                )}
             </div>
-            
-            <AnimatePresence mode="wait">
-                {!isCollapsed && (
+
+            {/* Menu Dropdown */}
+            <AnimatePresence>
+                {isMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, x: -10}}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="flex-1 min-w-0"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className={`absolute bottom-full mb-2 ${isCollapsed ? 'left-full ml-2' : 'left-0 right-0 mx-4'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50`}
+                        style={{ minWidth: isCollapsed ? '200px' : 'auto' }}
                     >
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{userName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userEmail}</p>
+                        <button
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                // Configurações não faz nada
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                        >
+                            <Settings className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">Configurações</span>
+                        </button>
+                        
+                        <div className="border-t border-gray-200 dark:border-gray-700" />
+                        
+                        <button
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                onLogout();
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
+                        >
+                            <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                            <span className="text-sm font-medium text-red-600 dark:text-red-400">Sair da conta</span>
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>
-            
-            {/* Tooltip para usuário colapsado */}
-            {isCollapsed && (
-                <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
-                    <p className="font-medium">{userName}</p>
-                    <p className="text-xs text-gray-300">{userEmail}</p>
-                </div>
-            )}
         </div>
     );
 }
@@ -191,11 +254,17 @@ function MobileHeader({ onMenuClick }: MobileHeaderProps) {
 
 // Componente Principal
 export default function DashboardLayout() {
-    const { accounts } = useMsal();
+    const { accounts, instance } = useMsal();
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const theme = usePreferredTheme();
+
+    const handleLogout = () => {
+        instance.logoutRedirect({
+            postLogoutRedirectUri: "/",
+        });
+    };
 
     const menuItems: MenuItem[] = [
         { name: 'Geral', icon: Home, path: '/dashboard' },
@@ -230,9 +299,6 @@ export default function DashboardLayout() {
     const userName = accounts[0]?.name || "User";
     const userEmail = accounts[0]?.username || "user@example.com";
     const userInitial = userName.charAt(0).toUpperCase();
-    const userPhoto = () => {
-        
-    }
 
     const handleToggle = () => {
         if (window.innerWidth < 1024) {
@@ -310,6 +376,7 @@ export default function DashboardLayout() {
                         userEmail={userEmail}
                         userInitial={userInitial}
                         isCollapsed={isCollapsed}
+                        onLogout={handleLogout}
                     />
                 </div>
             </motion.aside>

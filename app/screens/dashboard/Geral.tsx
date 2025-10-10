@@ -15,6 +15,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+const apiUrl = process.env.API_ENDPOINT;
+
 interface Comunidade {
   id: number;
   CNPJ: string;
@@ -43,6 +45,8 @@ function useAccessToken() {
   const { instance, accounts } = useMsal();
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  console.log(token)
 
   useEffect(() => {
     const acquireToken = async () => {
@@ -132,7 +136,7 @@ export default function Geral() {
     
     setLoading(true);
     try {
-      const response = await fetchWithAuth('http://127.0.0.1:8000/api/data/geral/');
+      const response = await fetchWithAuth(`${apiUrl}/api/data/geral/`);
       const result = await response.json();
       setData(result.data || []);
       setFilteredData(result.data || []);
@@ -156,7 +160,7 @@ export default function Geral() {
     if (e.key === 'Enter' && searchQuery.trim() && token) {
       setLoading(true);
       try {
-        const response = await fetchWithAuth(`http://127.0.0.1:8000/api/data/geral/filter?name=${encodeURIComponent(searchQuery)}`);
+        const response = await fetchWithAuth(`${apiUrl}/api/data/geral/filter?name=${encodeURIComponent(searchQuery)}/`);
         const result = await response.json();
         const searchData = result.data || [];
         
