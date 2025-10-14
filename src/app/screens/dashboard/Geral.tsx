@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const apiUrl = process.env.API_ENDPOINT;
+const apiUrl = process.env.REACT_APP_API_ENDPOINT;
 
 interface Comunidade {
   id: number;
