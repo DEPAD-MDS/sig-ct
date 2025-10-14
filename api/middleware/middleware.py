@@ -3,7 +3,7 @@ import time
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 import requests
-from api.utils.cache import token_cache, CACHE_TIMEOUT
+from utils.cache import token_cache, CACHE_TIMEOUT
 
 async def validate_microsoft_token(token: str) -> dict:
     GRAPH_API_URL = "https://graph.microsoft.com/v1.0/me"
