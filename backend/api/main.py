@@ -13,3 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router, prefix="/api/v1")
+
+# A verificação de erros utiliza dos recursos de try/except. É recomendado a
+# troca de funções comuns para funções ascicronas. TODO - Adicionar middle -
+# ware na main.

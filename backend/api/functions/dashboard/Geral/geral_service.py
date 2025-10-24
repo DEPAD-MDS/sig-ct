@@ -47,5 +47,13 @@ def get_data(token):
     )
     return formatted_data
 
+#TODO - CRIAR SERVIÇO DE FILTRAGEM DE DADOS SPREADSHEET
+
 def get_filtered_data(token, query):
+    get_data(token)
+    return None
+
+#TODO - CRIAR SERVIÇO DE EXCLUSIVIDADE POR NOME EM DADOS SPREADSHEET
+
+def get_comunity_data(token, query):
     return None

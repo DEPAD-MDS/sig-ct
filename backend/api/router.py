@@ -8,12 +8,13 @@ from backend.api.utils.test_routes import test_routes
 
 router = APIRouter()
 
-protected_routes = []
+router.include_router(test_routes)
+public_routes = []
+
 
 router.include_router(user_routes)
 router.include_router(geral_routes)
 router.include_router(cebas_routes)
 router.include_router(assessoria_routes)
 router.include_router(repasses_routes)
-router.include_router(test_routes)
 
