@@ -10,7 +10,8 @@ def get_data(token):
     last_interval = 'AD1167'
     data = service.get_graph_spreadsheet(drive_id, sheet_id, worksheet, initial_interval, last_interval, '?$select=values')
     formatted_data = []
-    for row in data:
+    rows = data.get('values', [])
+    for row in rows:
         formatted_data.append(
         comunidades_types(
             cnpj=str(row[0]),
@@ -56,4 +57,38 @@ def get_filtered_data(token, query):
 #TODO - CRIAR SERVIÇO DE EXCLUSIVIDADE POR NOME EM DADOS SPREADSHEET
 
 def get_comunity_data(token, query):
-    return None
+    data = get_data(token)
+    filters = query.get('comunity', {})
+    cnpj = filters.get('cnpj', '').strip()
+    name = filters.get('name', '').strip()
+    results = []
+    
+    if not cnpj and not name:
+        return data
+    
+    search_cnpj = ''.join(filter(str.isdigit, cnpj)) if cnpj else ''
+    
+    for comunidade in data:
+        score = 0
+        cnpj_match = False
+        name_match = False
+        
+        # Verificação CNPJ
+        if cnpj:
+            clean_cnpj = ''.join(filter(str.isdigit, comunidade.cnpj))
+            if search_cnpj == clean_cnpj:
+                score += 100
+                cnpj_match = True
+            elif search_cnpj and clean_cnpj.startswith(search_cnpj[:8]):
+                score += 50
+                cnpj_match = True
+        
+        # Verificação NOME
+        if name:
+            # Lógica para verificar nome aqui
+            pass
+
+        if cnpj_match or name_match:
+            results.append((score, comunidade))    
+    results.sort(key=lambda x: x[0], reverse=True)
+    return [comunidade for score, comunidade in results]

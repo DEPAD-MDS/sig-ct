@@ -38,7 +38,7 @@ def get_geral_filtered_data(request:Request, cnpj: str = '', razao_social: str =
 #TODO - FAZER A REQUISIÇÃO ÚNICA POR NOME DE COMUNIDADE
 
 @geral_routes.get("/comunidade")
-def get_geral_comunity_data(request:Request, name: str, cnpj:str):
+def get_geral_comunity_data(request:Request, name: str='', cnpj:str=''):
     query = {
         'comunity': {
             'cnpj' : cnpj,

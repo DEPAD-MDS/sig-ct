@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api.router import router 
+from router import router 
 
 
 app = FastAPI(title="Microsoft Auth API", version="1.0.0")
