@@ -84,7 +84,7 @@ function ToggleButton({ isCollapsed, onClick }: ToggleButtonProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClick}
-            className="p-2 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
+            className="p-2 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shrink-0"
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
         >
             {isCollapsed ? (
@@ -110,7 +110,7 @@ function MenuItem({ item, isCollapsed, isActive }: MenuItemProps) {
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                 }`}
             >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" />
                 
                 <AnimatePresence mode="wait">
                     {!isCollapsed && (
@@ -164,7 +164,7 @@ function UserProfile({ userName, userEmail, userInitial, isCollapsed, onLogout }
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="flex gap-3 p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center group"
             >
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
                     <span className="text-white text-sm font-bold">{userInitial}</span>
                 </div>
                 
@@ -236,7 +236,7 @@ function UserProfile({ userName, userEmail, userInitial, isCollapsed, onLogout }
 // Componente de Mobile Header
 function MobileHeader({ onMenuClick }: MobileHeaderProps) {
     return (
-        <div className="lg:hidden h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 flex items-center justify-between flex-shrink-0">
+        <div className="lg:hidden h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 flex items-center justify-between shrink-0">
             <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -335,7 +335,7 @@ export default function DashboardLayout() {
                 className="fixed lg:relative h-full bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 z-50 flex flex-col"
             >
                 {/* Header */}
-                <div className="h-fit py-4 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className="h-fit py-4 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
                     <Logo isCollapsed={isCollapsed} />
                     <ToggleButton isCollapsed={isCollapsed} onClick={handleToggle} />
                 </div>
@@ -370,7 +370,7 @@ export default function DashboardLayout() {
                 </div>
 
                 {/* User Profile */}
-                <div className="border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className="border-t border-gray-200 dark:border-gray-700 shrink-0">
                     <UserProfile 
                         userName={userName}
                         userEmail={userEmail}

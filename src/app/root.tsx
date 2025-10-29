@@ -9,10 +9,10 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
-import { msalConfig } from "msalConfig";
-
+import { EventType, PublicClientApplication } from "@azure/msal-browser";
+import { MsalProvider, useMsal } from "@azure/msal-react";
+import { loginRequest, msalConfig } from "msalConfig";
+import { useState } from "react";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -27,8 +27,20 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
-const msalInstance = new PublicClientApplication(msalConfig)
-msalInstance.initialize()
+const msalInstance = new PublicClientApplication(msalConfig);
+
+// Inicialização síncrona - MSAL v3 não precisa de await
+const accounts = msalInstance.getAllAccounts();
+if (accounts.length > 0) {
+  msalInstance.setActiveAccount(accounts[0]);
+}
+
+msalInstance.addEventCallback((event: any) => {
+  if (event.eventType === EventType.LOGIN_SUCCESS && event.payload.account) {
+    const account = event.payload.account;
+    msalInstance.setActiveAccount(account);
+  }
+});
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -50,14 +62,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+async function setSessionToken() {
+  const [token, setToken] = useState('')
+  const {instance} = useMsal()
+  const response = await instance.acquireTokenSilent({
+    ...loginRequest,
+    account: accounts[0]
+  });
+  setToken(response.accessToken)
+}
+
 export default function App() {
-  return (
-    <>
-      <MsalProvider instance={msalInstance}>
-        <Outlet />
-      </MsalProvider>
-    </>
-  )
+  return <Outlet />; // Remove o MsalProvider duplicado
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
