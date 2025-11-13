@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { Home, Bell, CheckSquare, Settings, BookOpen, List, HelpCircle, Menu, ChevronLeft, ChevronRight, LogOut, type LucideIcon } from 'lucide-react';
-
+import { useUserData } from "~/hooks/useUserData";
 // Tipos
 type Theme = 'light' | 'dark';
 
@@ -157,15 +157,15 @@ function UserProfile({ userName, userEmail, userInitial, isCollapsed, onLogout }
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isMenuOpen]);
-
+    const { userData, userPhoto, loading, error } = useUserData();
     return (
         <div ref={menuRef} className="relative">
             <div 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="flex gap-3 p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center group"
             >
-                <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
-                    <span className="text-white text-sm font-bold">{userInitial}</span>
+                <div className="w-10 h-10 bg-linear-to-br overflow-hidden from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
+                    <img alt="Foto de perfil" src={`data:image/png;base64, ${userPhoto}`} className=""></img>
                 </div>
                 
                 <AnimatePresence mode="wait">
