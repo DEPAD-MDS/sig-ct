@@ -4,14 +4,13 @@ from router import router
 
 
 app = FastAPI(title="Microsoft Auth API", version="1.0.0")
-
-# CORS simplificado
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# CORS simplificado
 app.include_router(router, prefix="/api/v1")
 
 # A verificação de erros utiliza dos recursos de try/except. É recomendado a
