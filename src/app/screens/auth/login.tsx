@@ -12,7 +12,7 @@ export default function Login() {
 
   const {instance} = useMsal()
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       {/* Background com fade in */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -39,7 +39,7 @@ export default function Login() {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="space-y-2"
           >
-            <img src='/sigct-full-logo.png' />
+            <img src='/sigct-full-logo.png' alt="logo"/>
           </motion.div>
 
           {/* Texto de boas-vindas */}
