@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+import React, { useEffect, useRef, useState } from "react";
+import * as d3 from "d3";
+import { FilterIcon, SparklesIcon } from "lucide-react";
+import Modal from "~/components/Modal";
 
 interface TecnicoData {
   responsavel: string;
@@ -27,10 +29,34 @@ export default function Repasses() {
 
   // Mock data para as tabelas
   const demandaPorTecnico: TecnicoData[] = [
-    { responsavel: "João Silva", gnd3: "25", gnd4: "18", tmFormalizacao: "12", tmParecer: "8" },
-    { responsavel: "Maria Santos", gnd3: "32", gnd4: "22", tmFormalizacao: "10", tmParecer: "7" },
-    { responsavel: "Pedro Costa", gnd3: "28", gnd4: "15", tmFormalizacao: "14", tmParecer: "9" },
-    { responsavel: "Ana Oliveira", gnd3: "20", gnd4: "12", tmFormalizacao: "11", tmParecer: "6" },
+    {
+      responsavel: "João Silva",
+      gnd3: "25",
+      gnd4: "18",
+      tmFormalizacao: "12",
+      tmParecer: "8",
+    },
+    {
+      responsavel: "Maria Santos",
+      gnd3: "32",
+      gnd4: "22",
+      tmFormalizacao: "10",
+      tmParecer: "7",
+    },
+    {
+      responsavel: "Pedro Costa",
+      gnd3: "28",
+      gnd4: "15",
+      tmFormalizacao: "14",
+      tmParecer: "9",
+    },
+    {
+      responsavel: "Ana Oliveira",
+      gnd3: "20",
+      gnd4: "12",
+      tmFormalizacao: "11",
+      tmParecer: "6",
+    },
   ];
 
   const statusPorAnalista: StatusData[] = [
@@ -52,73 +78,81 @@ export default function Repasses() {
     if (!statusChartRef.current) return;
 
     const svg = d3.select(statusChartRef.current);
-    svg.selectAll('*').remove();
+    svg.selectAll("*").remove();
 
     const width = 400;
     const height = 300;
     const margin = { top: 30, right: 30, bottom: 50, left: 60 };
 
-    const data = [{ label: 'Finalizado', value: 199 }];
+    const data = [{ label: "Finalizado", value: 199 }];
 
-    const x = d3.scaleBand()
-      .domain(data.map(d => d.label))
+    const x = d3
+      .scaleBand()
+      .domain(data.map((d) => d.label))
       .range([margin.left, width - margin.right])
       .padding(0.4);
 
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(data, (d: { value: any; }) => d.value) as number * 1.1])
+    const y = d3
+      .scaleLinear()
+      .domain([
+        0,
+        (d3.max(data, (d: { value: any }) => d.value) as number) * 1.1,
+      ])
       .range([height - margin.bottom, margin.top]);
 
-    const g = svg.append('g');
+    const g = svg.append("g");
 
     // Barras
-    g.selectAll('rect')
+    g.selectAll("rect")
       .data(data)
       .enter()
-      .append('rect')
-      .attr('x', (d: { label: any; }) => x(d.label) as number)
-      .attr('y', (d: { value: any; }) => y(d.value))
-      .attr('width', x.bandwidth())
-      .attr('height', (d: { value: any; }) => height - margin.bottom - y(d.value))
-      .attr('fill', '#3b82f6')
-      .attr('rx', 4);
+      .append("rect")
+      .attr("x", (d: { label: any }) => x(d.label) as number)
+      .attr("y", (d: { value: any }) => y(d.value))
+      .attr("width", x.bandwidth())
+      .attr(
+        "height",
+        (d: { value: any }) => height - margin.bottom - y(d.value)
+      )
+      .attr("fill", "#3b82f6")
+      .attr("rx", 4);
 
     // Valores no topo das barras
-    g.selectAll('text.value')
+    g.selectAll("text.value")
       .data(data)
       .enter()
-      .append('text')
-      .attr('class', 'value')
-      .attr('x', (d: { label: any; }) => (x(d.label) as number) + x.bandwidth() / 2)
-      .attr('y', (d: { value: any; }) => y(d.value) - 5)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#f1f5f9')
-      .attr('font-size', '14px')
-      .attr('font-weight', '600')
-      .text((d: { value: any; }) => d.value);
+      .append("text")
+      .attr("class", "value")
+      .attr(
+        "x",
+        (d: { label: any }) => (x(d.label) as number) + x.bandwidth() / 2
+      )
+      .attr("y", (d: { value: any }) => y(d.value) - 5)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#f1f5f9")
+      .attr("font-size", "14px")
+      .attr("font-weight", "600")
+      .text((d: { value: any }) => d.value);
 
     // Eixo X
-    g.append('g')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
+    g.append("g")
+      .attr("transform", `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(x))
-      .selectAll('text')
-      .attr('fill', '#94a3b8')
-      .attr('font-size', '12px');
+      .selectAll("text")
+      .attr("fill", "#94a3b8")
+      .attr("font-size", "12px");
 
-    g.selectAll('.domain, .tick line')
-      .attr('stroke', '#475569');
+    g.selectAll(".domain, .tick line").attr("stroke", "#475569");
 
     // Eixo Y
-    g.append('g')
-      .attr('transform', `translate(${margin.left},0)`)
+    g.append("g")
+      .attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(y))
-      .selectAll('text')
-      .attr('fill', '#94a3b8')
-      .attr('font-size', '12px');
+      .selectAll("text")
+      .attr("fill", "#94a3b8")
+      .attr("font-size", "12px");
 
-    g.selectAll('.domain, .tick line')
-      .attr('stroke', '#475569');
-
+    g.selectAll(".domain, .tick line").attr("stroke", "#475569");
   }, []);
 
   // Gráfico de Situação
@@ -126,132 +160,194 @@ export default function Repasses() {
     if (!situacaoChartRef.current) return;
 
     const svg = d3.select(situacaoChartRef.current);
-    svg.selectAll('*').remove();
+    svg.selectAll("*").remove();
 
     const width = 400;
     const height = 300;
     const margin = { top: 30, right: 30, bottom: 50, left: 60 };
 
     const data = [
-      { label: 'Celebrado', value: 182 },
-      { label: 'Impedimento Técnico', value: 17 }
+      { label: "Celebrado", value: 182 },
+      { label: "Impedimento Técnico", value: 17 },
     ];
 
-    const x = d3.scaleBand()
-      .domain(data.map(d => d.label))
+    const x = d3
+      .scaleBand()
+      .domain(data.map((d) => d.label))
       .range([margin.left, width - margin.right])
       .padding(0.4);
 
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(data, (d: { value: any; }) => d.value) as number * 1.1])
+    const y = d3
+      .scaleLinear()
+      .domain([
+        0,
+        (d3.max(data, (d: { value: any }) => d.value) as number) * 1.1,
+      ])
       .range([height - margin.bottom, margin.top]);
 
-    const colorScale = d3.scaleOrdinal()
-      .domain(data.map(d => d.label))
-      .range(['#10b981', '#ef4444']);
+    const colorScale = d3
+      .scaleOrdinal()
+      .domain(data.map((d) => d.label))
+      .range(["#10b981", "#ef4444"]);
 
-    const g = svg.append('g');
+    const g = svg.append("g");
 
     // Barras
-    g.selectAll('rect')
+    g.selectAll("rect")
       .data(data)
       .enter()
-      .append('rect')
-      .attr('x', (d: { label: any; }) => x(d.label) as number)
-      .attr('y', (d: { value: any; }) => y(d.value))
-      .attr('width', x.bandwidth())
-      .attr('height', (d: { value: any; }) => height - margin.bottom - y(d.value))
-      .attr('fill', (d: { label: any; }) => colorScale(d.label) as string)
-      .attr('rx', 4);
+      .append("rect")
+      .attr("x", (d: { label: any }) => x(d.label) as number)
+      .attr("y", (d: { value: any }) => y(d.value))
+      .attr("width", x.bandwidth())
+      .attr(
+        "height",
+        (d: { value: any }) => height - margin.bottom - y(d.value)
+      )
+      .attr("fill", (d: { label: any }) => colorScale(d.label) as string)
+      .attr("rx", 4);
 
     // Valores no topo das barras
-    g.selectAll('text.value')
+    g.selectAll("text.value")
       .data(data)
       .enter()
-      .append('text')
-      .attr('class', 'value')
-      .attr('x', (d: { label: any; }) => (x(d.label) as number) + x.bandwidth() / 2)
-      .attr('y', (d: { value: any; }) => y(d.value) - 5)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#f1f5f9')
-      .attr('font-size', '14px')
-      .attr('font-weight', '600')
-      .text((d: { value: any; }) => d.value);
+      .append("text")
+      .attr("class", "value")
+      .attr(
+        "x",
+        (d: { label: any }) => (x(d.label) as number) + x.bandwidth() / 2
+      )
+      .attr("y", (d: { value: any }) => y(d.value) - 5)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#f1f5f9")
+      .attr("font-size", "14px")
+      .attr("font-weight", "600")
+      .text((d: { value: any }) => d.value);
 
     // Eixo X
-    g.append('g')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
+    g.append("g")
+      .attr("transform", `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(x))
-      .selectAll('text')
-      .attr('fill', '#94a3b8')
-      .attr('font-size', '11px')
-      .style('text-anchor', 'end')
-      .attr('dx', '-.8em')
-      .attr('dy', '.15em')
-      .attr('transform', 'rotate(-25)');
+      .selectAll("text")
+      .attr("fill", "#94a3b8")
+      .attr("font-size", "11px")
+      .style("text-anchor", "end")
+      .attr("dx", "-.8em")
+      .attr("dy", ".15em")
+      .attr("transform", "rotate(-25)");
 
-    g.selectAll('.domain, .tick line')
-      .attr('stroke', '#475569');
+    g.selectAll(".domain, .tick line").attr("stroke", "#475569");
 
     // Eixo Y
-    g.append('g')
-      .attr('transform', `translate(${margin.left},0)`)
+    g.append("g")
+      .attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(y))
-      .selectAll('text')
-      .attr('fill', '#94a3b8')
-      .attr('font-size', '12px');
+      .selectAll("text")
+      .attr("fill", "#94a3b8")
+      .attr("font-size", "12px");
 
-    g.selectAll('.domain, .tick line')
-      .attr('stroke', '#475569');
-
+    g.selectAll(".domain, .tick line").attr("stroke", "#475569");
   }, []);
-
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   return (
-    <section className="flex gap-6 flex-col p-6 bg-slate-900 min-h-screen">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-slate-100">Repasses</h1>
+    <section className="flex flex-col p-6 bg-slate-900 min-h-screen">
+      <div className="flex flex-row justify-between items-center w-full">
+        <div>
+          <h1 className="text-2xl font-semibold">Repasses</h1>
+          <p className="text-sm opacity-60">Página de repasses das comunidades</p>
+        </div>
+        <div className="flex gap-4">
+          <button
+            onClick={() => {
+              setIsFilterOpen(true);
+            }}
+            className=" flex justify-center items-center gap-2 text-sm border px-4 py-2 rounded-md border-gray-700 hover:bg-gray-700 hover:border-gray-600 transition-all cursor-pointer"
+          >
+            <FilterIcon size={15} /> Filtros
+          </button>
+          <button
+            onClick={() => {
+              setIsCreateOpen(true);
+            }}
+            className="text-sm gap-2 flex flex-row items-center justify-center border px-4 py-2 rounded-md border-gray-700 hover:bg-gray-700 hover:border-gray-600 transition-all cursor-pointer"
+          >
+            <SparklesIcon size={15} /> Criar apresentação
+          </button>
+        </div>
+        <Modal isActive={isFilterOpen} onClose={() => setIsFilterOpen(false)}>
+          Aqui vão os filtros
+        </Modal>
+        <Modal isActive={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
+          Aqui é a criação das apresentações
+        </Modal>
       </div>
+      <div className="w-full h-px my-4 bg-gray-700" />
 
       {/* Cards de Indicadores */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Indicação (TOTAL)</div>
+          <div className="text-sm font-medium text-slate-400">
+            Indicação (TOTAL)
+          </div>
           <div className="text-2xl font-semibold text-slate-100 mt-1">245</div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Processos SEI</div>
+          <div className="text-sm font-medium text-slate-400">
+            Processos SEI
+          </div>
           <div className="text-2xl font-semibold text-slate-100 mt-1">189</div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Representação</div>
+          <div className="text-sm font-medium text-slate-400">
+            Representação
+          </div>
           <div className="text-2xl font-semibold text-slate-100 mt-1">156</div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Média - Elaboração Parecer</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">7.5 dias</div>
+          <div className="text-sm font-medium text-slate-400">
+            Média - Elaboração Parecer
+          </div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">
+            7.5 dias
+          </div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Média - Formalização</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">11.8 dias</div>
+          <div className="text-sm font-medium text-slate-400">
+            Média - Formalização
+          </div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">
+            11.8 dias
+          </div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">Contrapartida</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">R$ 2.4M</div>
+          <div className="text-sm font-medium text-slate-400">
+            Contrapartida
+          </div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">
+            R$ 2.4M
+          </div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
           <div className="text-sm font-medium text-slate-400">Valor GND3</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">R$ 5.8M</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">
+            R$ 5.8M
+          </div>
         </div>
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
           <div className="text-sm font-medium text-slate-400">Valor GND4</div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">R$ 3.2M</div>
+          <div className="text-2xl font-semibold text-slate-100 mt-1">
+            R$ 3.2M
+          </div>
         </div>
       </div>
 
       {/* Tabela: Demanda por Técnico */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="p-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-100">Demanda por Técnico</h2>
+          <h2 className="text-xl font-semibold text-slate-100">
+            Demanda por Técnico
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -276,7 +372,10 @@ export default function Repasses() {
             </thead>
             <tbody className="divide-y divide-slate-700">
               {demandaPorTecnico.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-700/50 transition-colors">
+                <tr
+                  key={idx}
+                  className="hover:bg-slate-700/50 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
                     {row.responsavel}
                   </td>
@@ -302,7 +401,9 @@ export default function Repasses() {
       {/* Tabela: Status do Processo por Analista Responsável */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="p-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-100">Status do Processo por Analista Responsável</h2>
+          <h2 className="text-xl font-semibold text-slate-100">
+            Status do Processo por Analista Responsável
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -321,7 +422,10 @@ export default function Repasses() {
             </thead>
             <tbody className="divide-y divide-slate-700">
               {statusPorAnalista.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-700/50 transition-colors">
+                <tr
+                  key={idx}
+                  className="hover:bg-slate-700/50 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
                     {row.responsavel}
                   </td>
@@ -341,7 +445,9 @@ export default function Repasses() {
       {/* Tabela: Concluídos por Analista Responsável */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
         <div className="p-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-100">Concluídos por Analista Responsável</h2>
+          <h2 className="text-xl font-semibold text-slate-100">
+            Concluídos por Analista Responsável
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -360,7 +466,10 @@ export default function Repasses() {
             </thead>
             <tbody className="divide-y divide-slate-700">
               {concluidosPorAnalista.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-700/50 transition-colors">
+                <tr
+                  key={idx}
+                  className="hover:bg-slate-700/50 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
                     {row.responsavel}
                   </td>
@@ -381,25 +490,29 @@ export default function Repasses() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status dos Processos (Consolidados) */}
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h2 className="text-xl font-semibold text-slate-100 mb-4">Status dos Processos (Consolidados)</h2>
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">
+            Status dos Processos (Consolidados)
+          </h2>
           <svg
             ref={statusChartRef}
             width="100%"
             height="300"
             viewBox="0 0 400 300"
-            style={{ background: '#0f172a' }}
+            style={{ background: "#0f172a" }}
           />
         </div>
 
         {/* Situação */}
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h2 className="text-xl font-semibold text-slate-100 mb-4">Situação</h2>
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">
+            Situação
+          </h2>
           <svg
             ref={situacaoChartRef}
             width="100%"
             height="300"
             viewBox="0 0 400 300"
-            style={{ background: '#0f172a' }}
+            style={{ background: "#0f172a" }}
           />
         </div>
       </div>

@@ -48,14 +48,13 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
         }, [map]);
 
         // Simplifica popups em zoom baixo
-        const showDetailedPopup = currentZoom > 8;
+        const showDetailedPopup = currentZoom > 5;
 
         return (
             <>
                 {data.map((community, index) => {
                     const lat = parseFloat(community.latitude);
                     const lng = parseFloat(community.longitude);
-
                     return (
                         <Marker 
                             icon={iconPerson} 
@@ -63,9 +62,9 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
                             position={[lat, lng]}
                         >
                             <Popup maxWidth={300} minWidth={200}>
-                                <div className="p-2">
+                                <div className="">
                                     <h3 className="font-bold text-sm mb-2 text-blue-700">
-                                        {community.nome_fantasia}
+                                        Comunidade: {community.nome_fantasia}
                                     </h3>
                                     {showDetailedPopup ? (
                                         <div className="text-xs space-y-1">
@@ -75,11 +74,13 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
                                             <p><strong>Email:</strong> {community.email}</p>
                                             <p><strong>Vagas Contratadas:</strong> {community.vagas_contratadas}</p>
                                             <p><strong>Adultos Masc:</strong> {community.adulto_masc} | <strong>Fem:</strong> {community.adulto_feminino}</p>
+                                            <button className='py-1 px-3 text-white rounded-md cursor-pointer bg-gray-800 border border-gray-700'>Ver mais</button>
                                         </div>
                                     ) : (
                                         <div className="text-xs">
                                             <p><strong>Município:</strong> {community.municipio} - {community.uf}</p>
                                             <p><strong>Vagas:</strong> {community.vagas_contratadas}</p>
+                                            <button className='py-1 px-3 text-white rounded-md cursor-pointer bg-gray-800 border border-gray-700'>Ver mais</button>
                                         </div>
                                     )}
                                 </div>

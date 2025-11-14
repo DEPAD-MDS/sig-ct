@@ -5,8 +5,8 @@ export interface UserData {
   nome_completo: string;
   nome_abreviado: string;
   email_corporativo: string;
+  setor: string;
 }
-
 async function userService(token: string): Promise<UserData>{
   const headers = {
     method: "GET",
@@ -38,6 +38,5 @@ async function userPhotoService(token: string): Promise<Base64URLString>{
       const data = await response.json();
       return data;
 }
-
 
 export {userService, userPhotoService};

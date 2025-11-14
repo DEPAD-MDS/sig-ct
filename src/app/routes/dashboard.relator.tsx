@@ -1,6 +1,5 @@
-import type { Route } from "./+types/dashboard.suporte";
-import Suporte from "~/screens/dashboard/support/Suporte";
-
+import type { Route } from "./+types/dashboard.relator";
+import Relator from "~/screens/dashboard/relator/Relator";
 export function meta({ }: Route.MetaArgs) {
   return [
     { title: "Sistema Integrado de Gestão de Comunidades Terapeuticas." },
@@ -8,6 +7,6 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-export default function DashboardSuporte() {
-    return <Suporte/>;
+export default function DashboardRelatorAI() {
+    return <Relator/>;
 }
