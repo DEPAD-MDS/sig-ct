@@ -13,7 +13,6 @@ export default [
       route("/", "routes/dashboard.tsx"),
       route("/repasses", "routes/dashboard.repasses.tsx"),
       route("/cebas", "routes/dashboard.cebas.tsx"),
-      route("/monitoramento", "routes/dashboard.monitoramento.tsx"),
       route("/contratos", "routes/dashboard.contratos.tsx"),
       route("/support", "routes/dashboard.suporte.tsx"),
       route("/relator", "routes/dashboard.relator.tsx"),
