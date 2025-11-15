@@ -1,23 +1,193 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Map from "~/components/data/Map";
 import { useGeralData } from "~/hooks/dashboard/useGeralData";
 import Modal from "~/components/Modal";
-import {
-  FilterIcon,
-  LoaderCircle,
-  LoaderIcon,
-  Scan,
-  ScanText,
-  SparklesIcon,
-  StarHalfIcon,
-  StarIcon,
-} from "lucide-react";
+import Card from "~/components/data/Card";
+import { FilterIcon, LoaderCircle, SparklesIcon } from "lucide-react";
 import { Link } from "react-router";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Pie, Bar } from "react-chartjs-2";
+
+// Registrar componentes do Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 function MinhaPage() {
   const { communities, loading, error } = useGeralData();
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // Calcular totais para os cards
+  const totals = useMemo(() => {
+    if (!communities || communities.length === 0) {
+      return {
+        entities: 0,
+        totalVagas: 0,
+        vagasMasculino: 0,
+        vagasFeminino: 0,
+        vagasMaes: 0,
+        totalValorGlobal: 0,
+      };
+    }
+
+    return communities.reduce(
+      (acc, community) => {
+        // Contar entidades com CNPJ válido
+        if (community.cnpj && community.cnpj.trim() !== "") {
+          acc.entities++;
+        }
+
+        // Somar vagas (convertendo string para número)
+        const vagas = parseInt(community.vagas_contratadas) || 0;
+        const masculino = parseInt(community.adulto_masc) || 0;
+        const feminino = parseInt(community.adulto_feminino) || 0;
+        const maes = parseInt(community.maes) || 0;
+
+        acc.totalVagas += vagas;
+        acc.vagasMasculino += masculino;
+        acc.vagasFeminino += feminino;
+        acc.vagasMaes += maes;
+
+        // Somar valor global (removendo pontos e convertendo para número)
+        const valor = parseFloat(
+          community.previsao_recurso_anual?.replace(/\./g, "").replace(",", ".") || "0"
+        );
+        acc.totalValorGlobal += valor;
+
+        return acc;
+      },
+      {
+        entities: 0,
+        totalVagas: 0,
+        vagasMasculino: 0,
+        vagasFeminino: 0,
+        vagasMaes: 0,
+        totalValorGlobal: 0,
+      }
+    );
+  }, [communities]);
+
+  // Dados para gráfico de pizza - Vagas contratadas
+  const pieChartDataContratadas = useMemo(() => {
+    const data = {
+      labels: ["Masculino", "Feminino", "Mães"],
+      datasets: [
+        {
+          data: [totals.vagasMasculino, totals.vagasFeminino, totals.vagasMaes],
+          backgroundColor: [
+            "rgba(54, 162, 235, 0.8)",
+            "rgba(255, 99, 132, 0.8)",
+            "rgba(75, 192, 192, 0.8)",
+          ],
+          borderColor: [
+            "rgba(54, 162, 235, 1)",
+            "rgba(255, 99, 132, 1)",
+            "rgba(75, 192, 192, 1)",
+          ],
+          borderWidth: 1,
+        },
+      ],
+    };
+    return data;
+  }, [totals]);
+
+  // Dados para gráfico de pizza - Vagas totais (mesmos dados para exemplo)
+  const pieChartDataTotais = useMemo(() => {
+    return {
+      ...pieChartDataContratadas,
+      datasets: [
+        {
+          ...pieChartDataContratadas.datasets[0],
+          backgroundColor: [
+            "rgba(54, 162, 235, 0.6)",
+            "rgba(255, 99, 132, 0.6)",
+            "rgba(75, 192, 192, 0.6)",
+          ],
+        },
+      ],
+    };
+  }, [pieChartDataContratadas]);
+
+  // Dados para gráfico de barras por estado
+  const barChartDataEstados = useMemo(() => {
+    if (!communities) return { labels: [], datasets: [] };
+
+    const estadosCount = communities.reduce((acc, community) => {
+      if (community.uf && community.uf.trim() !== "") {
+        acc[community.uf] = (acc[community.uf] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const labels = Object.keys(estadosCount);
+    const data = Object.values(estadosCount);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Número de Comunidades",
+          data,
+          backgroundColor: "rgba(153, 102, 255, 0.6)",
+          borderColor: "rgba(153, 102, 255, 1)",
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [communities]);
+
+  // Opções para os gráficos
+  const pieChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "bottom" as const,
+      },
+      title: {
+        display: true,
+        text: "Distribuição de Vagas",
+      },
+    },
+  };
+
+  const barChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: "Comunidades por Estado",
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full relative">
@@ -57,20 +227,7 @@ function MinhaPage() {
       </div>
     );
   }
-  const Card = () => {
-    return (
-      <div className="w-full gap-4">
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-          <div className="text-sm font-medium text-slate-400">
-            Titulo do dado
-          </div>
-          <div className="text-2xl font-semibold text-slate-100 mt-1">
-            Valor
-          </div>
-        </div>
-      </div>
-    );
-  };
+
   return (
     <div className="p-6 w-full">
       <div className="flex flex-row justify-between items-center w-full">
@@ -108,25 +265,76 @@ function MinhaPage() {
       <div className="w-full h-px my-4 bg-gray-700" />
       <section className="flex gap-4 flex-col">
         <div className="flex flex-row gap-4">
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
-          <Card></Card>
+          <Card 
+            title="Entidades com vínculo" 
+            type="numeral" 
+            value={totals.entities.toString()} 
+          />
+          <Card 
+            title="Total de vagas geral" 
+            type="numeral" 
+            value={totals.totalVagas.toString()} 
+          />
+          <Card
+            title="Total de vagas masculino"
+            type="numeral"
+            value={totals.vagasMasculino.toString()}
+          />
+          <Card
+            title="Total de vagas feminino"
+            type="numeral"
+            value={totals.vagasFeminino.toString()}
+          />
+          <Card
+            title="Total de vagas mães"
+            type="numeral"
+            value={totals.vagasMaes.toString()}
+          />
+          <Card 
+            title="Total valor global" 
+            type="monetário" 
+            value={totals.totalValorGlobal.toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL'
+            })} 
+          />
         </div>
+        
         <h1 className="text-xl font-semibold">Mapa geral das comunidades</h1>
         <Map dataReq={communities} />
-        <h1 className="text-xl font-semibold">
-          Gráficos por vagas contratadas
-        </h1>
-        aqui é aquele pizza sobre femin masculin e maes
-        <h1 className="text-xl font-semibold">Gráficos por vagas totais</h1>
-        aqui é aquele pizza sobre femin masculin e maes
-        <h1 className="text-xl font-semibold">Gráficos por estado</h1>
-        aqui é aquele barra sobre os estados
-        <h1 className="text-xl font-semibold">
-          Tabela resumida das comunidades
-        </h1>
+        
+        <h1 className="text-xl font-semibold">Tabela por região</h1>
+        <div className="border border-gray-700 rounded-lg p-4 text-center text-gray-400">
+          Tabela de regiões será implementada aqui
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h1 className="text-xl font-semibold mb-4">Gráficos por vagas contratadas</h1>
+            <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+              <Pie data={pieChartDataContratadas} options={pieChartOptions} />
+            </div>
+          </div>
+          
+          <div>
+            <h1 className="text-xl font-semibold mb-4">Gráficos por vagas totais</h1>
+            <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+              <Pie data={pieChartDataTotais} options={pieChartOptions} />
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h1 className="text-xl font-semibold mb-4">Gráficos por estado</h1>
+          <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+            <Bar data={barChartDataEstados} options={barChartOptions} />
+          </div>
+        </div>
+        
+        <h1 className="text-xl font-semibold">Tabela resumida das comunidades</h1>
+        <div className="border border-gray-700 rounded-lg p-4 text-center text-gray-400">
+          Tabela resumida será implementada aqui
+        </div>
       </section>
     </div>
   );

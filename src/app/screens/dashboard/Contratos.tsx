@@ -2,16 +2,16 @@ import { FilterIcon, SparklesIcon } from "lucide-react";
 import { useState } from "react";
 import Modal from "~/components/Modal";
 
-export default function Cebas() {
+export default function Contratos(){
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  return (
-    <section className="p-6">
-      <div className="flex flex-row justify-between items-center w-full">
+  return(
+    <div className="p-6">
+       <div className="flex flex-row justify-between items-center w-full">
         <div>
-          <h1 className="text-2xl font-semibold">Cebas</h1>
+          <h1 className="text-2xl font-semibold">Comunidades</h1>
           <p className="text-sm opacity-60">
-            Página de visão do CEBAS
+            Página dos contratos das comunidades 
           </p>
         </div>
         <div className="flex gap-4">
@@ -40,6 +40,6 @@ export default function Cebas() {
         </Modal>
       </div>
       <div className="w-full h-px my-4 bg-gray-700" />
-    </section>
-  );
+    </div>
+  )
 }

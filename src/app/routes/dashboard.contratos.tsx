@@ -1,5 +1,6 @@
-import type { Route } from "./+types/dashboard.relator";
-import Relator from "~/screens/dashboard/relator/Relator";
+import type { Route } from "./+types/dashboard.contratos";
+import Contratos from "~/screens/dashboard/Contratos";
+
 export function meta({ }: Route.MetaArgs) {
   return [
     { title: "Sistema Integrado de Gestão de Comunidades Terapêuticas." },
@@ -7,6 +8,6 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-export default function DashboardRelatorAI() {
-    return <Relator/>;
+export default function DashboardContratos() {
+    return <Contratos/>;
 }

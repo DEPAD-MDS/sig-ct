@@ -19,10 +19,12 @@ import {
   BotIcon,
   DollarSign,
   Search,
+  ScrollText,
 } from "lucide-react";
 import { useUserData } from "~/hooks/useUserData";
 import Modal from "./Modal";
 import React from "react";
+import { flatGroup } from "d3";
 
 // Tipos
 type Theme = "light" | "dark";
@@ -211,7 +213,7 @@ function UserProfile({
         onClick={() => setIsMenuOpen(!isMenuOpen)}
         className="flex gap-3 p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer items-center group"
       >
-        <div className="w-10 h-10 bg-gradient-to-br overflow-hidden from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 overflow-hidden from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
           {userPhoto ? (
             <img
               alt="Foto de perfil"
@@ -219,7 +221,7 @@ function UserProfile({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+            <div className="w-full h-full from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
               {userName.charAt(0).toUpperCase()}
             </div>
           )}
@@ -536,6 +538,7 @@ export default function DashboardLayout() {
   const menuItems: MenuItem[] = [
     { name: "Geral", icon: Home, path: "/dashboard" },
     { name: "Repasses", icon: DollarSign, path: "/dashboard/repasses" },
+    { name: "Contratos", icon: ScrollText, path: "/dashboard/contratos" },
     { name: "CEBAS", icon: CheckSquare, path: "/dashboard/cebas" },
   ];
 
