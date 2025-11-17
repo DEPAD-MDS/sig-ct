@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from typing import Annotated, List
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from router import router 
 
 
-app = FastAPI(title="Microsoft Auth API", version="1.0.0")
+
+app = FastAPI(title="Api simplificada Depad", version="1.0.0")
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
