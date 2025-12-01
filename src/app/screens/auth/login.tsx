@@ -61,7 +61,7 @@ export default function Login() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.5 }}
-            className="w-full cursor-pointer from-blue-800 to-blue-900 text-white py-3 px-4 rounded-xl font-medium shadow-lg transition-all duration-300 flex items-center justify-center gap-3"
+            className="w-full cursor-pointer from-blue-800 to-blue-900 bg-linear-to-r text-white py-3 px-4 rounded-xl font-medium shadow-lg transition-all duration-300 flex items-center justify-center gap-3"
           >
             Entrar com sua conta Institucional MDS
           </motion.button>

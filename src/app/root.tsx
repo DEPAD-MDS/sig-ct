@@ -13,6 +13,9 @@ import { EventType, PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider, useMsal } from "@azure/msal-react";
 import { loginRequest, msalConfig } from "msalConfig";
 import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // Ensure correct imports
+
+const queryClient = new QueryClient();
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -52,24 +55,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <MsalProvider instance={msalInstance}>
-          {children}
-        </MsalProvider>
-        <ScrollRestoration />
-        <Scripts />
+        <QueryClientProvider client={queryClient}>
+          <MsalProvider instance={msalInstance}>{children}</MsalProvider>
+          <ScrollRestoration />
+          <Scripts />
+        </QueryClientProvider>
       </body>
     </html>
   );
 }
 
 async function setSessionToken() {
-  const [token, setToken] = useState('')
-  const {instance} = useMsal()
+  const [token, setToken] = useState("");
+  const { instance } = useMsal();
   const response = await instance.acquireTokenSilent({
     ...loginRequest,
-    account: accounts[0]
+    account: accounts[0],
   });
-  setToken(response.accessToken)
+  setToken(response.accessToken);
 }
 
 export default function App() {
