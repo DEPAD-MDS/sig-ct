@@ -29,16 +29,27 @@ ChartJS.register(
 );
 
 function MinhaPage() {
-  const { data: communities = [], isLoading, error } = useGeralData(); // Fallback para array vazio
+  const { data: communities, isLoading, error } = useGeralData();
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 10;
 
-  // Calcular totais para os cards - SEMPRE retorna um objeto válido
+  // Calcular totais para os cards
   const totals = useMemo(() => {
-    const safeCommunities = communities || [];
-    
-    return safeCommunities.reduce(
+    if (!communities || communities.length === 0) {
+      return {
+        entities: 0,
+        totalVagas: 0,
+        vagasMasculino: 0,
+        vagasFeminino: 0,
+        vagasMaes: 0,
+        totalValorGlobal: 0,
+      };
+    }
+
+    return communities.reduce(
       (acc, community) => {
         // Contar entidades com CNPJ válido
         if (community.cnpj && community.cnpj.trim() !== "") {
@@ -75,9 +86,9 @@ function MinhaPage() {
     );
   }, [communities]);
 
-  // Dados para gráficos - SEMPRE retornam dados válidos
+  // Dados para gráfico de pizza - Vagas contratadas
   const pieChartDataContratadas = useMemo(() => {
-    const data = {
+    const chartData = {
       labels: ["Masculino", "Feminino", "Mães"],
       datasets: [
         {
@@ -96,9 +107,10 @@ function MinhaPage() {
         },
       ],
     };
-    return data;
+    return chartData;
   }, [totals]);
 
+  // Dados para gráfico de pizza - Vagas totais (mesmos dados para exemplo)
   const pieChartDataTotais = useMemo(() => {
     return {
       ...pieChartDataContratadas,
@@ -115,10 +127,69 @@ function MinhaPage() {
     };
   }, [pieChartDataContratadas]);
 
+  // Dados para gráfico de barras horizontal - Comparação de vagas
+  const horizontalBarChartData = useMemo(() => {
+    return {
+      labels: ['Vagas'],
+      datasets: [
+        {
+          label: 'Masculino',
+          data: [totals.vagasMasculino],
+          borderColor: 'rgb(54, 162, 235)',
+          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          borderWidth: 2,
+        },
+        {
+          label: 'Feminino',
+          data: [totals.vagasFeminino],
+          borderColor: 'rgb(255, 99, 132)',
+          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          borderWidth: 2,
+        },
+        {
+          label: 'Mães',
+          data: [totals.vagasMaes],
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          borderWidth: 2,
+        },
+      ],
+    };
+  }, [totals]);
+
+  // Dados para gráfico de barras por região (mesmo formato do gráfico por estados)
+  const barChartDataRegiao = useMemo(() => {
+    if (!communities) return { labels: [], datasets: [] };
+
+    const regiaoCount = communities.reduce((acc, community) => {
+      if (community.regiao && community.regiao.trim() !== "") {
+        acc[community.regiao] = (acc[community.regiao] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const labels = Object.keys(regiaoCount);
+    const valores = Object.values(regiaoCount);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Número de Comunidades",
+          data: valores,
+          backgroundColor: "rgba(255, 159, 64, 0.6)",
+          borderColor: "rgba(255, 159, 64, 1)",
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [communities]);
+
+  // Dados para gráfico de barras por estado
   const barChartDataEstados = useMemo(() => {
-    const safeCommunities = communities || [];
-    
-    const estadosCount = safeCommunities.reduce((acc, community) => {
+    if (!communities) return { labels: [], datasets: [] };
+
+    const estadosCount = communities.reduce((acc, community) => {
       if (community.uf && community.uf.trim() !== "") {
         acc[community.uf] = (acc[community.uf] || 0) + 1;
       }
@@ -126,14 +197,14 @@ function MinhaPage() {
     }, {} as Record<string, number>);
 
     const labels = Object.keys(estadosCount);
-    const data = Object.values(estadosCount);
+    const valores = Object.values(estadosCount);
 
     return {
       labels,
       datasets: [
         {
           label: "Número de Comunidades",
-          data,
+          data: valores,
           backgroundColor: "rgba(153, 102, 255, 0.6)",
           borderColor: "rgba(153, 102, 255, 1)",
           borderWidth: 1,
@@ -141,6 +212,27 @@ function MinhaPage() {
       ],
     };
   }, [communities]);
+
+  // Paginação da tabela
+  const paginatedCommunities = useMemo(() => {
+    if (!communities) return [];
+    const start = currentPage * itemsPerPage;
+    const end = start + itemsPerPage;
+    return communities.slice(start, end);
+  }, [communities, currentPage]);
+
+  const totalPages = useMemo(() => {
+    if (!communities) return 0;
+    return Math.ceil(communities.length / itemsPerPage);
+  }, [communities]);
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+  };
 
   // Opções para os gráficos
   const pieChartOptions = {
@@ -156,6 +248,54 @@ function MinhaPage() {
     },
   };
 
+  const horizontalBarChartOptions = {
+    indexAxis: 'y' as const,
+    elements: {
+      bar: {
+        borderWidth: 2,
+      },
+    },
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+      },
+      title: {
+        display: true,
+        text: 'Comparação de Vagas por Categoria',
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+      },
+    },
+  };
+
+  // Opções para gráfico de barras por região (mesmo formato do gráfico por estados)
+  const barChartOptionsRegiao = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: "Comunidades por Região",
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+
+  // Opções para gráfico de barras por estado
   const barChartOptions = {
     responsive: true,
     plugins: {
@@ -292,25 +432,19 @@ function MinhaPage() {
         <h1 className="text-xl font-semibold">Mapa geral das comunidades</h1>
         <Map dataReq={communities} />
         
-        <h1 className="text-xl font-semibold">Tabela por região</h1>
-        <div className="border border-gray-700 rounded-lg p-4 text-center text-gray-400">
-          Tabela de regiões será implementada aqui
+        <h1 className="text-xl font-semibold">Gráficos por vagas contratadas</h1>
+        <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+          <Bar data={horizontalBarChartData} options={horizontalBarChartOptions} />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <h1 className="text-xl font-semibold mb-4">Gráficos por vagas contratadas</h1>
-            <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
-              <Pie data={pieChartDataContratadas} options={pieChartOptions} />
-            </div>
-          </div>
-          
-          <div>
-            <h1 className="text-xl font-semibold mb-4">Gráficos por vagas totais</h1>
-            <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
-              <Pie data={pieChartDataTotais} options={pieChartOptions} />
-            </div>
-          </div>
+        <h1 className="text-xl font-semibold">Gráficos por vagas totais</h1>
+        <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+          <Bar data={horizontalBarChartData} options={horizontalBarChartOptions} />
+        </div>
+        
+        <h1 className="text-xl font-semibold">Gráfico por região</h1>
+        <div className="border border-gray-700 rounded-lg p-4 bg-gray-800">
+          <Bar data={barChartDataRegiao} options={barChartOptionsRegiao} />
         </div>
         
         <div>
@@ -321,8 +455,98 @@ function MinhaPage() {
         </div>
         
         <h1 className="text-xl font-semibold">Tabela resumida das comunidades</h1>
-        <div className="border border-gray-700 rounded-lg p-4 text-center text-gray-400">
-          Tabela resumida será implementada aqui
+        <div className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs uppercase bg-gray-700 text-gray-300">
+                <tr>
+                  <th scope="col" className="px-6 py-3">CNPJ</th>
+                  <th scope="col" className="px-6 py-3">Razão Social</th>
+                  <th scope="col" className="px-6 py-3">UF</th>
+                  <th scope="col" className="px-6 py-3">Município</th>
+                  <th scope="col" className="px-6 py-3">Vagas Contratadas</th>
+                  <th scope="col" className="px-6 py-3">Masculino</th>
+                  <th scope="col" className="px-6 py-3">Feminino</th>
+                  <th scope="col" className="px-6 py-3">Mães</th>
+                  <th scope="col" className="px-6 py-3">Valor Anual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedCommunities.length > 0 ? (
+                  paginatedCommunities.map((community, index) => (
+                    <tr 
+                      key={`${community.cnpj}-${index}`} 
+                      className="border-b border-gray-700 hover:bg-gray-750 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-200">
+                        {community.cnpj || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300">
+                        {community.razao_social || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300">
+                        {community.uf || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300">
+                        {community.municipio || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300 text-center">
+                        {community.vagas_contratadas || '0'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300 text-center">
+                        {community.adulto_masc || '0'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300 text-center">
+                        {community.adulto_feminino || '0'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300 text-center">
+                        {community.maes || '0'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-300">
+                        {community.previsao_recurso_anual 
+                          ? `R$ ${community.previsao_recurso_anual}` 
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-8 text-center text-gray-400">
+                      Nenhuma comunidade encontrada
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Controles de paginação */}
+          <div className="flex items-center justify-between px-6 py-4 bg-gray-750 border-t border-gray-700">
+            <div className="text-sm text-gray-400">
+              Mostrando {currentPage * itemsPerPage + 1} a{' '}
+              {Math.min((currentPage + 1) * itemsPerPage, communities?.length || 0)} de{' '}
+              {communities?.length || 0} comunidades
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 0}
+                className="px-4 py-2 text-sm border border-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                ← Anterior
+              </button>
+              <div className="flex items-center px-4 py-2 text-sm text-gray-300">
+                Página {currentPage + 1} de {totalPages}
+              </div>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage >= totalPages - 1}
+                className="px-4 py-2 text-sm border border-gray-600 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Próximo →
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </div>
