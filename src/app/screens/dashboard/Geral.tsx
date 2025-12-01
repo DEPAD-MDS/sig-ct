@@ -29,25 +29,16 @@ ChartJS.register(
 );
 
 function MinhaPage() {
-  const { communities, loading, error } = useGeralData();
+  const { data: communities = [], isLoading, error } = useGeralData(); // Fallback para array vazio
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Calcular totais para os cards
+  // Calcular totais para os cards - SEMPRE retorna um objeto válido
   const totals = useMemo(() => {
-    if (!communities || communities.length === 0) {
-      return {
-        entities: 0,
-        totalVagas: 0,
-        vagasMasculino: 0,
-        vagasFeminino: 0,
-        vagasMaes: 0,
-        totalValorGlobal: 0,
-      };
-    }
-
-    return communities.reduce(
+    const safeCommunities = communities || [];
+    
+    return safeCommunities.reduce(
       (acc, community) => {
         // Contar entidades com CNPJ válido
         if (community.cnpj && community.cnpj.trim() !== "") {
@@ -84,7 +75,7 @@ function MinhaPage() {
     );
   }, [communities]);
 
-  // Dados para gráfico de pizza - Vagas contratadas
+  // Dados para gráficos - SEMPRE retornam dados válidos
   const pieChartDataContratadas = useMemo(() => {
     const data = {
       labels: ["Masculino", "Feminino", "Mães"],
@@ -108,7 +99,6 @@ function MinhaPage() {
     return data;
   }, [totals]);
 
-  // Dados para gráfico de pizza - Vagas totais (mesmos dados para exemplo)
   const pieChartDataTotais = useMemo(() => {
     return {
       ...pieChartDataContratadas,
@@ -125,11 +115,10 @@ function MinhaPage() {
     };
   }, [pieChartDataContratadas]);
 
-  // Dados para gráfico de barras por estado
   const barChartDataEstados = useMemo(() => {
-    if (!communities) return { labels: [], datasets: [] };
-
-    const estadosCount = communities.reduce((acc, community) => {
+    const safeCommunities = communities || [];
+    
+    const estadosCount = safeCommunities.reduce((acc, community) => {
       if (community.uf && community.uf.trim() !== "") {
         acc[community.uf] = (acc[community.uf] || 0) + 1;
       }
@@ -188,7 +177,7 @@ function MinhaPage() {
     },
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full relative">
         <div className="flex w-76 items-center flex-col border bg-gray-800 border-gray-700 rounded-2xl p-6">

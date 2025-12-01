@@ -1,7 +1,7 @@
 import { useMsal } from "@azure/msal-react";
-import { Navigate, Outlet, useLocation, Link } from "react-router";
+import { Navigate, Outlet, useLocation, Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext, useMemo } from "react";
 import {
   Home,
   Bell,
@@ -21,10 +21,10 @@ import {
   Search,
   ScrollText,
 } from "lucide-react";
-import { useUserData } from "~/hooks/useUserData";
+import { useSearchCommunities } from "~/hooks/useSearchCommunities";
 import Modal from "./Modal";
 import React from "react";
-import { flatGroup } from "d3";
+import { useUserData } from "~/hooks/useUserData";
 
 // Tipos
 type Theme = "light" | "dark";
@@ -297,6 +297,7 @@ function UserProfile({
 }
 
 // Componente de Navbar Header
+// Componente de Navbar Header
 function NavbarHeader({ 
   onMenuClick, 
   isDesktop = false 
@@ -305,28 +306,152 @@ function NavbarHeader({
   isDesktop?: boolean;
 }) {
   const [searchValue, setSearchValue] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const { data: communities } = useSearchCommunities();
+  const navigate = useNavigate();
+  
+  // Refs para detectar clique fora
+  const searchFormRef = useRef<HTMLFormElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  // Debounce effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  // Fecha sugestões quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Verifica se o clique foi fora do form e das sugestões
+      if (
+        searchFormRef.current && 
+        !searchFormRef.current.contains(event.target as Node) &&
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    // Adiciona listener apenas se as sugestões estão visíveis
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
+
+  // Filtra as sugestões por CNPJ e NOME (razao_social)
+  const suggestions = useMemo(() => {
+    if (!communities || !debouncedSearch.trim() || debouncedSearch.length < 2) {
+      setShowSuggestions(false);
+      return [];
+    }
+
+    const term = debouncedSearch.toLowerCase().trim();
+    
+    const filtered = communities
+      .filter((community) => {
+        const razaoSocial = community.razao_social?.toLowerCase() || '';
+        const cnpj = community.cnpj?.toString() || '';
+        
+        // Busca tanto no nome (razao_social) quanto no CNPJ
+        return razaoSocial.includes(term) || cnpj.includes(term);
+      })
+      .slice(0, 5); // Máximo 5 sugestões
+
+    // Mostra sugestões apenas se houver resultados
+    setShowSuggestions(filtered.length > 0);
+    return filtered;
+  }, [communities, debouncedSearch]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Lógica de pesquisa aqui
-    console.log("Pesquisar por:", searchValue);
+    if (searchValue.trim()) {
+      // Navegar para a página de comunidades com a query
+      navigate(`/dashboard/comunidades?search=${encodeURIComponent(searchValue.trim())}`);
+      setSearchValue(""); // Limpar o input após navegação
+      setShowSuggestions(false); // Fecha sugestões
+    }
+  };
+
+  const handleInputFocus = () => {
+    if (suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+    // Mostra sugestões apenas se tiver pelo menos 2 caracteres
+    if (e.target.value.trim().length >= 2 && suggestions.length > 0) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (community: any) => {
+    setSearchValue(community.razao_social || community.cnpj);
+    setShowSuggestions(false); // Fecha sugestões ao clicar
+    
+    // Navegar para a página específica da comunidade
+    if (community.id) {
+      navigate(`/dashboard/comunidades/${community.id}`);
+    } else {
+      navigate(`/dashboard/comunidades?search=${encodeURIComponent(community.razao_social || community.cnpj)}`);
+    }
   };
 
   if (isDesktop) {
     return (
       <div className="hidden lg:flex bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 items-center justify-between shrink-0">
-      
-
-        <form onSubmit={handleSearch} className="flex-1 text-sm max-w-2xl mx-auto">
+        <form 
+          ref={searchFormRef}
+          onSubmit={handleSubmit} 
+          className="flex-1 text-sm max-w-2xl mx-auto relative"
+        >
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Pesquisar comunidades terapêuticas..."
+              name="search"
+              placeholder="Pesquisar comunidades por nome ou CNPJ..."
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
+            
+            {/* Sugestões */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div 
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+              >
+                {suggestions.map((community, index) => (
+                  <div
+                    key={community.id || index}
+                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    onClick={() => handleSuggestionClick(community)}
+                  >
+                    <div className="font-medium text-gray-900 dark:text-white text-sm">
+                      {community.razao_social}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      CNPJ: {community.cnpj}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </form>
 
@@ -351,17 +476,45 @@ function NavbarHeader({
         <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
       </motion.button>
       
-      <div className="flex-1 mx-4">
-        <form onSubmit={handleSearch}>
+      <div className="flex-1 mx-4 relative">
+        <form 
+          ref={searchFormRef}
+          onSubmit={handleSubmit}
+        >
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Pesquisar comunidades..."
+              name="search"
+              placeholder="Pesquisar por nome ou CNPJ..."
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
               className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
+            
+            {/* Sugestões Mobile */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div 
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+              >
+                {suggestions.map((community, index) => (
+                  <div
+                    key={community.id || index}
+                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    onClick={() => handleSuggestionClick(community)}
+                  >
+                    <div className="font-medium text-gray-900 dark:text-white text-sm">
+                      {community.razao_social}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      CNPJ: {community.cnpj}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </form>
       </div>
@@ -538,12 +691,10 @@ export default function DashboardLayout() {
   const menuItems: MenuItem[] = [
     { name: "Geral", icon: Home, path: "/dashboard" },
     { name: "Repasses", icon: DollarSign, path: "/dashboard/repasses" },
-    { name: "Contratos", icon: ScrollText, path: "/dashboard/contratos" },
     { name: "CEBAS", icon: CheckSquare, path: "/dashboard/cebas" },
   ];
 
   const otherItems: MenuItem[] = [
-    { name: "Suporte de TI", icon: ComputerIcon, path: "/dashboard/support" },
     { name: "Relator", icon: BotIcon, path: "/dashboard/relator" },
   ];
 
