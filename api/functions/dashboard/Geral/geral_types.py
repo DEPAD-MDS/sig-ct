@@ -8,6 +8,7 @@ class comunidades_types(BaseModel):
         contrato_ano: str 
         processo_sei: str
         uf: str 
+        regiao:str
         municipio: str 
         endereco: str 
         telefone: str 
