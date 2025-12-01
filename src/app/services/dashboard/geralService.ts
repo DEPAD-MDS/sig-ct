@@ -5,6 +5,7 @@ export interface CommunityData {
     contrato_ano: string;
     processo_sei: string;
     uf: string;
+    regiao: string;
     municipio: string;
     endereco: string;
     telefone: string;
