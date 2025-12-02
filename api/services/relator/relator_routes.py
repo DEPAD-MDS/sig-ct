@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter
 import httpx
 from toon import encode
-
+from settings import Settings
 relator_routes = APIRouter(prefix="/relator", tags=["Relator"]);
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-c76c411fdece4c08ba5dd35469434778")
@@ -20,7 +20,7 @@ async def create_presentation(data: dict):
     
     # Extrai os dados principais
     description = data.get("description", "Sem descrição")
-    dashboard_data = data.get("dashboardData", {})
+    dashboard_data = data.get("dashboardData", {Settings.get_ia_key()})
     
     # Converte os dados para formato Toon
     toon_data = encode(dashboard_data)
@@ -47,7 +47,7 @@ Formate a resposta em markdown e seja direto ao ponto.
             response = await client.post(
                 DEEPSEEK_API_URL,
                 headers={
-                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                    "Authorization": f"Bearer {Settings.get_ia_key()}",
                     "Content-Type": "application/json"
                 },
                 json={

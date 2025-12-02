@@ -5,6 +5,8 @@ from router import router
 
 app = FastAPI(title="Api simplificada Depad", version="1.0.0")
 
+
+
 origins = [
     "https://sig-ct.vercel.app",  # Seu frontend
     "http://localhost:5173",      # Desenvolvimento local
