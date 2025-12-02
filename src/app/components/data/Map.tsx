@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import L from 'leaflet'
 import { debounce } from 'lodash'
 
-export default function Map({ dataReq }: { dataReq: any }) {
+export default function Map({ dataReq }: { dataReq: any[] }) {
     const iconPerson = useMemo(
         () =>
             new L.Icon({
