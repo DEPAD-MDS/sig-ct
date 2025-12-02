@@ -7,7 +7,7 @@ from toon import encode
 
 relator_routes = APIRouter(prefix="/relator", tags=["Relator"]);
 
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-c76c411fdece4c08ba5dd35469434778")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 @relator_routes.post("/chat")
