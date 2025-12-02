@@ -5,10 +5,14 @@ from router import router
 
 app = FastAPI(title="Api simplificada Depad", version="1.0.0")
 
-
+origins = [
+    "https://sig-ct.vercel.app",  # Seu frontend
+    "http://localhost:5173",      # Desenvolvimento local
+    "http://localhost:3000",      # Outro possível local
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
