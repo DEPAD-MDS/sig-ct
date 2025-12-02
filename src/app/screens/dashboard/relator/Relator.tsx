@@ -111,7 +111,11 @@ export default function Relator() {
             Ao escrever o relatório, use linguagem formal e clara, adequada para o contexto institucional do MDS.
             AQUI ESTÃO OS DADOS (em formato JSON):
             ${rawData}
-            Use APENAS esses dados em toon para responder. Se não tiver a informação nos dados, diga que não tem.`,
+            Use APENAS esses dados em toon para responder.
+            faça uma contagem interna de comunidades, estados, regiões, vagas contratadas, recursos previstos, etc. Coloque tudo na sua memória de trabalho.
+            Se não tiver a informação nos dados, diga que não tem.
+            
+            SE O USUÁRIO TE PEDIR PARA PESQUISAR A INFORMAÇÃO DE ALGUMA COMUNIDADE OU QUALQUER OUTRA COISA COM RELAÇÃO AOS DADOS ESPECIFICAMENTE NA INTERNET (SE VOCÊ JULGAR NECESSÁRIO TAMBÉM) PODE PESQUISAR A VONTADE, AVISE QUE OS DADOS DEVEM SER CONSULTADOS, QUE TODOS OS DADOS GERADOS NO CONTEÚDO FORNECIDO SÃO PARA EXEMPLOS E DEVEM SER VERIFICADOS.`,
           },
           ...conversationHistory.filter((msg) => msg.role !== "system"),
           {
