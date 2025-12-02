@@ -1,15 +1,18 @@
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from fastapi import APIRouter
 import httpx
 from toon import encode
+
 relator_routes = APIRouter(prefix="/relator", tags=["Relator"]);
+
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 @relator_routes.post("/chat")
 def post_chat(token: str, data: dict):
     pass
-  
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 @relator_routes.post("/presentation")
 async def create_presentation(data: dict):

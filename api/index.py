@@ -3,8 +3,6 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from router import router 
 
-
-
 app = FastAPI(title="Api simplificada Depad", version="1.0.0")
 
 
