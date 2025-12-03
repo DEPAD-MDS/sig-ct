@@ -17,6 +17,34 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
     );
 
     const [regionsGeoJSON, setRegionsGeoJSON] = useState<any>(null);
+    
+    // Calcular vagas por região
+    const vagasPorRegiao = useMemo(() => {
+        const vagas: Record<string, number> = {};
+        
+        if (!dataReq || dataReq.length === 0) return vagas;
+        
+        // Nomes das regiões conforme a imagem
+        const regioes = ['Centro-Oeste', 'Nordeste', 'Norte', 'Sudeste', 'Sul'];
+        
+        // Inicializar todas as regiões com 0
+        regioes.forEach(regiao => {
+            vagas[regiao] = 0;
+        });
+        
+        // Contar vagas por região
+        dataReq.forEach(community => {
+            const regiao = community.regiao?.trim();
+            const vagasStr = community.vagas_contratadas?.toString()?.trim() || '0';
+            const vagasNum = parseInt(vagasStr) || 0;
+            
+            if (regiao && regioes.includes(regiao)) {
+                vagas[regiao] = (vagas[regiao] || 0) + vagasNum;
+            }
+        });
+        
+        return vagas;
+    }, [dataReq]);
 
     // Carrega o GeoJSON do arquivo local
     useEffect(() => {
@@ -70,49 +98,82 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
         dashArray: ''
     };
 
+    // Mapeamento de siglas para nomes completos das regiões
+    const getFullRegionName = useCallback((regionKey: string): string => {
+        const regionMap: Record<string, string> = {
+            'CO': 'Centro-Oeste',
+            'NE': 'Nordeste',
+            'N': 'Norte',
+            'SE': 'Sudeste',
+            'S': 'Sul'
+        };
+        
+        return regionMap[regionKey] || regionKey;
+    }, []);
+
     // Função para interação com cada região
-        const onEachRegion = useCallback((feature: any, layer: any) => {
-            console.log('Região feature:', feature);
+    const onEachRegion = useCallback((feature: any, layer: any) => {
+        console.log('Região feature:', feature);
+        
+        // Adiciona popup
+        if (feature.properties) {
+            const props = feature.properties;
+            const regionName = props.NOME1 || props.NOME2 || props.SIGLA || 'Região';
+            const sigla = props.SIGLA || '';
             
-            // Adiciona popup
-            if (feature.properties) {
-                const props = feature.properties;
-                const regionName = props.NOME1 || props.NOME2 || props.SIGLA || 'Região';
-                const sigla = props.SIGLA || '';
-                
-                const popupContent = `
-                    <div class="p-3">
-                        <h3 class="font-bold text-lg text-blue-700 mb-2">${regionName}</h3>
-                        ${sigla ? `<p class="text-sm mb-1"><strong>Sigla:</strong> ${sigla}</p>` : ''}
-                        ${props.NOME2 && props.NOME2 !== regionName ? 
-                          `<p class="text-sm"><strong>Nome completo:</strong> ${props.NOME2}</p>` : ''}
-                    </div>
-                `;
-                
-                layer.bindPopup(popupContent);
+            // Determinar o nome da região para buscar as vagas
+            let regionKeyForVagas = '';
+            
+            if (props.NOME1 && vagasPorRegiao[props.NOME1] !== undefined) {
+                regionKeyForVagas = props.NOME1;
+            } else if (props.NOME2 && vagasPorRegiao[props.NOME2] !== undefined) {
+                regionKeyForVagas = props.NOME2;
+            } else if (sigla) {
+                // Se temos apenas a sigla, converter para nome completo
+                const fullName = getFullRegionName(sigla);
+                if (vagasPorRegiao[fullName] !== undefined) {
+                    regionKeyForVagas = fullName;
+                }
             }
-    
-            // Eventos de hover
-            layer.on('mouseover',  (e: any) => {
-                layer.setStyle(highlightStyle);
-                layer.bringToFront();
-                
-                // Opcional: mudar cursor
-                document.body.style.cursor = 'pointer';
-            });
-    
-            layer.on('mouseout', function (e: any) {
-                layer.setStyle(getRegionStyle(feature));
-                
-                // Restaurar cursor
-                document.body.style.cursor = '';
-            });
-    
-            // Evento de clique (opcional)
-            layer.on('click', function (e: any) {
-                console.log('Região clicada:', feature.properties);
-            });
-        }, [getRegionStyle]);
+            
+            // Obter quantidade de vagas
+            const totalVagas = regionKeyForVagas ? vagasPorRegiao[regionKeyForVagas] : 0;
+            
+            const popupContent = `
+                <div class="p-3">
+                    <h3 class="font-bold text-lg text-blue-700 mb-2">${regionName}</h3>
+                    ${sigla ? `<p class="text-sm mb-1"><strong>Sigla:</strong> ${sigla}</p>` : ''}
+                    ${props.NOME2 && props.NOME2 !== regionName ? 
+                      `<p class="text-sm mb-1"><strong>Nome completo:</strong> ${props.NOME2}</p>` : ''}
+                    <p class="text-sm mb-1"><strong>Total de Vagas:</strong> ${totalVagas}</p>
+                    <p class="text-xs text-gray-500">Vagas contratadas na região</p>
+                </div>
+            `;
+            
+            layer.bindPopup(popupContent);
+        }
+
+        // Eventos de hover
+        layer.on('mouseover',  (e: any) => {
+            layer.setStyle(highlightStyle);
+            layer.bringToFront();
+            
+            // Opcional: mudar cursor
+            document.body.style.cursor = 'pointer';
+        });
+
+        layer.on('mouseout', function (e: any) {
+            layer.setStyle(getRegionStyle(feature));
+            
+            // Restaurar cursor
+            document.body.style.cursor = '';
+        });
+
+        // Evento de clique (opcional)
+        layer.on('click', function (e: any) {
+            console.log('Região clicada:', feature.properties);
+        });
+    }, [getRegionStyle, vagasPorRegiao, getFullRegionName]);
 
     // Componente para mostrar labels das regiões
     function RegionLabels() {
@@ -130,7 +191,7 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
         useEffect(() => {
             if (!map) return;
             
-            
+            // Código para labels das regiões...
 
             return () => {
                 // Limpa os markers quando o componente é desmontado
@@ -207,6 +268,7 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
                     const vagas = clean(community.vagas_contratadas) || "0";
                     const adultoMasc = clean(community.adulto_masc) || "0";
                     const adultoFem = clean(community.adulto_feminino) || "0";
+                    const regiao = clean(community.regiao) || "Não informado";
 
                     return (
                         <Marker
@@ -227,6 +289,7 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
                                             <p><strong>Telefone:</strong> {telefone}</p>
                                             <p><strong>Email:</strong> {email}</p>
                                             <p><strong>Vagas Contratadas:</strong> {vagas}</p>
+                                            <p><strong>Região:</strong> {regiao}</p>
                                             <p>
                                                 <strong>Adultos Masc:</strong> {adultoMasc} |{" "}
                                                 <strong>Fem:</strong> {adultoFem}
@@ -239,6 +302,7 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
                                         <div className="text-xs">
                                             <p><strong>Município:</strong> {municipio} - {uf}</p>
                                             <p><strong>Vagas:</strong> {vagas}</p>
+                                            <p><strong>Região:</strong> {regiao}</p>
                                             <button className="py-1 px-3 text-white rounded-md cursor-pointer bg-gray-800 border border-gray-700">
                                                 Ver mais
                                             </button>
@@ -311,6 +375,10 @@ export default function Map({ dataReq }: { dataReq: any[] }) {
                 
                 .leaflet-container {
                     cursor: default;
+                }
+                
+                .leaflet-popup-content p {
+                    margin: 5px 0;
                 }
             `}</style>
         </div>
