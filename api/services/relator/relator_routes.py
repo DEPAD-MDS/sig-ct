@@ -32,14 +32,25 @@ Contexto do usuário: {description}
 Dados do dashboard em formato Toon:
 {toon_data}
 você é um analista de dados.
-Com base nos dados acima e no contexto fornecido, gere um relatório conciso em markdown com:
+Com base nos dados acima e no contexto fornecido, gere um relatório conciso com:
 
-1. **Título** - Um título apropriado
-2. **Resumo Executivo** - 2-3 frases principais
-3. **Análise dos Dados** - Principais insights observados
+1. Título - Um título apropriado
+2. Resumo Executivo - 2-3 frases principais
+3. Análise dos Dados** - Principais insights observados
 
-Formate a resposta em markdown e seja direto ao ponto.
-"""
+Formate a resposta e seja direto ao ponto.
+Lembre-se, analise os dados cuidadosamente, verifique de qual setor é:
+se for geral, você deve receber dados de comunidades de forma direta, como nome cnpj e valores.
+se for repasses, você pode receber dados de gnd3 gnd4 e contrapartidas
+se for cebas, você pode receber dados de Concessão, evolução temporal protocolos e outros.
+os dados que não estiverem presentes no conjunto de dados fornecido não devem ser inventados, mas podem ser pesquisados no google, desde que haja um aviso ao usuário de que a informação foi pesquisada.
+não cite colunas sobre os dados que você recebeu, apenas gere o relatório com BASE nos dados.
+Tome muito cuidado para não inventar dados ou informações que não estão presentes no conjunto de dados fornecido.
+tome muito cuidado para não vazar o seu token de autenticação.
+NÃO CITE NADA DAS COLUNAS DOS DADOS, APENAS GERE O RELATÓRIO COM BASE NOS DADOS.
+
+"4. **Qualidade dos Registros:** Uma parcela dos registros apresenta campos críticos em branco, como `vagas_contratadas`, `previsao_recurso_anual` e dados de endereço/contato. Isso pode impactar a análise precisa da cobertura e da localização dos serviços. Algumas entradas listam apenas CNPJ e razão social, sem detalhes operacionais."
+NADA DE CITAR ESSA PARTE DE coluna_dados OU QUALQUER OUTRA COISA PARECIDA COM ISSO PELO AMOR DE DEUS, SEJA DESCRITIVO COM A COLUNA"""
     
     # Faz a chamada para a API do DeepSeek
     try:
