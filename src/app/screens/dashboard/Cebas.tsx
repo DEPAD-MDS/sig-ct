@@ -74,48 +74,70 @@ interface ConcessionRenovationData {
   color: string;
 }
 
+// Interface para o objeto de dados consolidado
+interface CebasData {
+  totalSolicitations: number;
+  concessionRenovationData: ConcessionRenovationData[];
+  temporalData: ProtocolData[];
+  regionData: RegionData[];
+  originData: OriginData[];
+  entryPointData: EntryPointData[];
+}
+
 export default function Cebas() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Dados para cards e gráficos
-  const totalSolicitations = 380;
-  
-  const concessionRenovationData: ConcessionRenovationData[] = [
-    { type: "Concessão", value: 302, percentage: 79.5, color: "#10b981" },
-    { type: "Renovação", value: 78, percentage: 20.5, color: "#3b82f6" },
-  ];
+  // Dados consolidados em um único objeto JSON
+  const cebasData: CebasData = {
+    totalSolicitations: 380,
+    
+    concessionRenovationData: [
+      { type: "Concessão", value: 302, percentage: 79.5, color: "#10b981" },
+      { type: "Renovação", value: 78, percentage: 20.5, color: "#3b82f6" },
+    ],
 
-  const temporalData: ProtocolData[] = [
-    { year: "2020", entities: 42 },
-    { year: "2021", entities: 68 },
-    { year: "2022", entities: 95 },
-    { year: "2023", entities: 120 },
-    { year: "2024", entities: 152 },
-    { year: "2025", entities: 185 },
-  ];
+    temporalData: [
+      { year: "2020", entities: 42 },
+      { year: "2021", entities: 68 },
+      { year: "2022", entities: 95 },
+      { year: "2023", entities: 120 },
+      { year: "2024", entities: 152 },
+      { year: "2025", entities: 185 },
+    ],
 
-  const regionData: RegionData[] = [
-    { name: "Sudeste", value: 185 },
-    { name: "Nordeste", value: 120 },
-    { name: "Sul", value: 95 },
-    { name: "Norte", value: 45 },
-    { name: "Centro-Oeste", value: 65 },
-  ];
+    regionData: [
+      { name: "Sudeste", value: 185 },
+      { name: "Nordeste", value: 120 },
+      { name: "Sul", value: 95 },
+      { name: "Norte", value: 45 },
+      { name: "Centro-Oeste", value: 65 },
+    ],
 
-  const originData: OriginData[] = [
-    { origin: "Secretaria de Educação Municipal", count: 145 },
-    { origin: "Secretaria de Saúde Estadual", count: 98 },
-    { origin: "Organização da Sociedade Civil", count: 76 },
-    { origin: "Fundação Privada", count: 32 },
-    { origin: "Associação Comunitária", count: 29 },
-  ];
+    originData: [
+      { origin: "Secretaria de Educação Municipal", count: 145 },
+      { origin: "Secretaria de Saúde Estadual", count: 98 },
+      { origin: "Organização da Sociedade Civil", count: 76 },
+      { origin: "Fundação Privada", count: 32 },
+      { origin: "Associação Comunitária", count: 29 },
+    ],
 
-  const entryPointData: EntryPointData[] = [
-    { entryPoint: "Portal Gov.br", count: 210 },
-    { entryPoint: "Sistema CEBAS Online", count: 125 },
-    { entryPoint: "Protocolo Físico", count: 35 },
-    { entryPoint: "Email Institucional", count: 10 },
-  ];
+    entryPointData: [
+      { entryPoint: "Portal Gov.br", count: 210 },
+      { entryPoint: "Sistema CEBAS Online", count: 125 },
+      { entryPoint: "Protocolo Físico", count: 35 },
+      { entryPoint: "Email Institucional", count: 10 },
+    ],
+  };
+
+  // Desestruturação para uso nos componentes
+  const {
+    totalSolicitations,
+    concessionRenovationData,
+    temporalData,
+    regionData,
+    originData,
+    entryPointData
+  } = cebasData;
 
   // Configurações do gráfico de linha (Evolução Temporal)
   const lineChartOptions: ChartOptions<"line"> = {
@@ -614,6 +636,7 @@ export default function Cebas() {
       <PresentationModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+        data={cebasData} // Passando todos os dados consolidados
       />
     </section>
   );

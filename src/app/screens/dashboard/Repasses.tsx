@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { FilterIcon, SparklesIcon } from "lucide-react";
-import Modal from "~/components/Modal";
+import { SparklesIcon } from "lucide-react";
+import PresentationModal from "../../components/PresentationModal";
 
 interface TecnicoData {
   responsavel: string;
@@ -24,8 +24,8 @@ interface ConcluidoData {
 }
 
 export default function Repasses() {
-  const statusChartRef = useRef<SVGSVGElement>(null);
-  const situacaoChartRef = useRef<SVGSVGElement>(null);
+  const statusChartRef = useRef(null);
+  const situacaoChartRef = useRef(null);
 
   // Mock data para as tabelas
   const demandaPorTecnico: TecnicoData[] = [
@@ -72,6 +72,32 @@ export default function Repasses() {
     { responsavel: "Pedro Costa", finalizado: "38", total: "38" },
     { responsavel: "Ana Oliveira", finalizado: "28", total: "28" },
   ];
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  
+  // Preparar todos os dados do dashboard para passar ao modal
+  const dashboardData = {
+    indicadores: {
+      indicacaoTotal: 245,
+      processosSEI: 189,
+      representacao: 156,
+      mediaElaboracaoParecer: 7.5,
+      mediaFormalizacao: 11.8,
+      contrapartida: 2400000,
+      valorGND3: 5800000,
+      valorGND4: 3200000
+    },
+    demandaPorTecnico,
+    statusPorAnalista,
+    concluidosPorAnalista,
+    graficos: {
+      statusProcessos: [{ label: "Finalizado", value: 199 }],
+      situacao: [
+        { label: "Celebrado", value: 182 },
+        { label: "Impedimento Técnico", value: 17 }
+      ]
+    }
+  };
 
   // Gráfico de Status dos Processos (Consolidados)
   useEffect(() => {
@@ -248,283 +274,158 @@ export default function Repasses() {
 
     g.selectAll(".domain, .tick line").attr("stroke", "#475569");
   }, []);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   return (
-    <section className="flex flex-col p-6 bg-slate-900 min-h-screen">
-      <div className="flex flex-row justify-between items-center w-full">
-        <div>
-          <h1 className="text-2xl font-semibold">Repasses</h1>
-          <p className="text-sm opacity-60">
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-row justify-between items-center">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold">Repasses</h1>
+          <p className="text-sm text-gray-400">
             Página de repasses das comunidades
           </p>
         </div>
-        <div className="flex  gap-4">
-          <button
-            onClick={() => {
-              setIsFilterOpen(true);
-            }}
-            className=" flex justify-center items-center gap-2 text-sm border px-4 py-2 rounded-md border-gray-700 hover:bg-gray-700 hover:border-gray-600 transition-all cursor-pointer"
-          >
-            <FilterIcon size={15} /> Filtros
-          </button>
-          <button
+        <div className="flex flex-row gap-2">
+          <div
             onClick={() => {
               setIsCreateOpen(true);
             }}
             className="text-sm gap-2 flex flex-row items-center justify-center border px-4 py-2 rounded-md border-gray-700 hover:bg-gray-700 hover:border-gray-600 transition-all cursor-pointer"
           >
-            <SparklesIcon size={15} /> Criar apresentação
-          </button>
-        </div>
-        <Modal isActive={isFilterOpen} onClose={() => setIsFilterOpen(false)}>
-          Aqui vão os filtros
-        </Modal>
-        <Modal isActive={isCreateOpen} onClose={() => setIsCreateOpen(false)}>
-          Aqui é a criação das apresentações
-        </Modal>
-      </div>
-      <div className="w-full h-px my-4 flex bg-gray-700" />
-      <div className="flex flex-col gap-4">
-        {/* Cards de Indicadores */}
-        <div className="flex gap-4">
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">
-              Indicação (TOTAL)
-            </div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              245
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">
-              Processos SEI
-            </div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              189
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">
-              Representação
-            </div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              156
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">
-              Média - Elaboração Parecer
-            </div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              7.5 dias
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">
-              Média - Formalização
-            </div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              11.8 dias
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">
-              Contrapartida
-            </div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              R$ 2.4M
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">Valor GND3</div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              R$ 5.8M
-            </div>
-          </div>
-          <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
-            <div className="text-sm font-medium text-slate-400">Valor GND4</div>
-            <div className="text-2xl font-semibold text-slate-100 mt-1">
-              R$ 3.2M
-            </div>
-          </div>
-        </div>
-
-        {/* Tabela: Demanda por Técnico */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-          <div className="p-4 border-b border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100">
-              Demanda por Técnico
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Responsável
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    GND3
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    GND4
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    TM - Formalização
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    TM - Parecer
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700">
-                {demandaPorTecnico.map((row, idx) => (
-                  <tr
-                    key={idx}
-                    className="hover:bg-slate-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
-                      {row.responsavel}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.gnd3}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.gnd4}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.tmFormalizacao}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.tmParecer}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Tabela: Status do Processo por Analista Responsável */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-          <div className="p-4 border-b border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100">
-              Status do Processo por Analista Responsável
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Responsável
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Finalizado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700">
-                {statusPorAnalista.map((row, idx) => (
-                  <tr
-                    key={idx}
-                    className="hover:bg-slate-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
-                      {row.responsavel}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.finalizado}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.total}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Tabela: Concluídos por Analista Responsável */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-          <div className="p-4 border-b border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-100">
-              Concluídos por Analista Responsável
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Responsável
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Finalizado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700">
-                {concluidosPorAnalista.map((row, idx) => (
-                  <tr
-                    key={idx}
-                    className="hover:bg-slate-700/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
-                      {row.responsavel}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.finalizado}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {row.total}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Status dos Processos (Consolidados) */}
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">
-              Status dos Processos (Consolidados)
-            </h2>
-            <svg
-              ref={statusChartRef}
-              width="100%"
-              height="300"
-              viewBox="0 0 400 300"
-              style={{ background: "#0f172a" }}
-            />
-          </div>
-
-          {/* Situação */}
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-            <h2 className="text-xl font-semibold text-slate-100 mb-4">
-              Situação
-            </h2>
-            <svg
-              ref={situacaoChartRef}
-              width="100%"
-              height="300"
-              viewBox="0 0 400 300"
-              style={{ background: "#0f172a" }}
-            />
+            <SparklesIcon />
+            Criar apresentação
           </div>
         </div>
       </div>
-    </section>
+
+      <PresentationModal 
+        isOpen={isCreateOpen} 
+        onClose={() => setIsCreateOpen(false)}
+        data={dashboardData}
+      />
+
+      {/* Cards de Indicadores */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Indicação (TOTAL)</p>
+          <p className="text-2xl font-bold">245</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Processos SEI</p>
+          <p className="text-2xl font-bold">189</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Representação</p>
+          <p className="text-2xl font-bold">156</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Média - Elaboração Parecer</p>
+          <p className="text-2xl font-bold">7.5 dias</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Média - Formalização</p>
+          <p className="text-2xl font-bold">11.8 dias</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Contrapartida</p>
+          <p className="text-2xl font-bold">R$ 2.4M</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Valor GND3</p>
+          <p className="text-2xl font-bold">R$ 5.8M</p>
+        </div>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-1">Valor GND4</p>
+          <p className="text-2xl font-bold">R$ 3.2M</p>
+        </div>
+      </div>
+
+      {/* Tabela: Demanda por Técnico */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <h2 className="text-lg font-semibold mb-4">Demanda por Técnico</h2>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Responsável</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">GND3</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">GND4</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">TM - Formalização</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">TM - Parecer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {demandaPorTecnico.map((row, idx) => (
+              <tr key={idx} className="border-b border-gray-700/50">
+                <td className="py-2 text-sm">{row.responsavel}</td>
+                <td className="py-2 text-sm">{row.gnd3}</td>
+                <td className="py-2 text-sm">{row.gnd4}</td>
+                <td className="py-2 text-sm">{row.tmFormalizacao}</td>
+                <td className="py-2 text-sm">{row.tmParecer}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Tabela: Status do Processo por Analista Responsável */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <h2 className="text-lg font-semibold mb-4">Status do Processo por Analista Responsável</h2>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Responsável</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Finalizado</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {statusPorAnalista.map((row, idx) => (
+              <tr key={idx} className="border-b border-gray-700/50">
+                <td className="py-2 text-sm">{row.responsavel}</td>
+                <td className="py-2 text-sm">{row.finalizado}</td>
+                <td className="py-2 text-sm">{row.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Tabela: Concluídos por Analista Responsável */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <h2 className="text-lg font-semibold mb-4">Concluídos por Analista Responsável</h2>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Responsável</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Finalizado</th>
+              <th className="text-left py-2 text-sm font-medium text-gray-400">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {concluidosPorAnalista.map((row, idx) => (
+              <tr key={idx} className="border-b border-gray-700/50">
+                <td className="py-2 text-sm">{row.responsavel}</td>
+                <td className="py-2 text-sm">{row.finalizado}</td>
+                <td className="py-2 text-sm">{row.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Status dos Processos (Consolidados) */}
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-4">Status dos Processos (Consolidados)</h2>
+          <svg ref={statusChartRef} width="400" height="300"></svg>
+        </div>
+
+        {/* Situação */}
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-4">Situação</h2>
+          <svg ref={situacaoChartRef} width="400" height="300"></svg>
+        </div>
+      </div>
+    </div>
   );
 }
